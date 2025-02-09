@@ -87,20 +87,7 @@ class BossGame extends Phaser.Scene {
     }
 
     update() {
-        // Player movement
-        if (this.cursors.left.isDown) {
-            this.aarav.body.setVelocityX(-160);
-        } else if (this.cursors.right.isDown) {
-            this.aarav.body.setVelocityX(160);
-        } else {
-            this.aarav.body.setVelocityX(0);
-        }
-
-        // Player jump
-        if (this.cursors.up.isDown && this.aarav.body.touching.down) {
-            this.aarav.body.setVelocityY(-500);
-        }
-        // Add air control (slightly reduced movement speed in air)
+        // Player movement and jump
         const moveSpeed = this.aarav.body.touching.down ? 160 : 120;
 
         if (this.cursors.left.isDown) {
@@ -109,6 +96,10 @@ class BossGame extends Phaser.Scene {
             this.aarav.body.setVelocityX(moveSpeed);
         } else {
             this.aarav.body.setVelocityX(0);
+        }
+        // Player jump with better ground detection
+        if (this.cursors.up.isDown && this.aarav.body.touching.down) {
+            this.aarav.body.setVelocityY(-600);
         }
 
         // Player shoot
@@ -149,10 +140,16 @@ class BossGame extends Phaser.Scene {
         );
         // Smart movement
         const direction = this.aarav.x - this.ruhaan.x;
-        if (distanceToPlayer > 300) {
+        // More aggressive movement
+        if (distanceToPlayer > 250) {
+            // Chase player faster when far away
+            this.ruhaan.body.setVelocityX(direction < 0 ? -200 : 200);
+        } else if (distanceToPlayer < 150) {
+            // Back away faster when too close
+            this.ruhaan.body.setVelocityX(direction < 0 ? 250 : -250);
+        } else {
+            // Maintain mid-range distance
             this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
-        } else if (distanceToPlayer < 200) {
-            this.ruhaan.body.setVelocityX(direction < 0 ? 150 : -150);
         }
         // Attack pattern selection
         if (this.time.now > this.lastBossAttack + 2000) {
@@ -248,15 +245,15 @@ class BossGame extends Phaser.Scene {
     }
     specialAttack() {
         // Create a powerful beam attack
-        const beam = this.add.rectangle(this.aarav.x, this.aarav.y, 400, 20, 0x00ffff);
+        const beam = this.add.rectangle(this.aarav.x, this.aarav.y, 500, 40, 0x00ffff);
         this.bullets.add(beam);
         beam.body.setAllowGravity(false);
-        beam.body.setVelocityX(800);
+        beam.body.setVelocityX(1000);
 
         // Special attack does more damage
         this.physics.add.overlap(this.ruhaan, beam, (ruhaan, beam) => {
             beam.destroy();
-            this.ruhhanHealth -= 50;
+            this.ruhhanHealth -= 100;
             if (this.ruhhanHealth <= 0) {
                 this.gameOver();
             }
