@@ -12,14 +12,21 @@ class BossGame extends Phaser.Scene {
         this.lastShot = 0;
         this.lastBossAttack = 0;
     }
-
+    preload() {
+        // Create a temporary platform texture
+        let graphics = this.add.graphics();
+        graphics.fillStyle(0x666666);
+        graphics.fillRect(0, 0, 200, 32);
+        graphics.generateTexture('platform', 200, 32);
+        graphics.destroy();
+    }
     create() {
         // Set background color
         this.cameras.main.setBackgroundColor('#4488AA');
 
         // Create static group for platforms
         this.platforms = this.physics.add.staticGroup();
-        
+
         // Create main platform/ground
         this.platforms.create(400, 580, 'platform')
             .setScale(2, 0.5)
@@ -56,7 +63,7 @@ class BossGame extends Phaser.Scene {
         this.physics.add.collider(this.ruhaan, this.platforms);
         this.physics.add.collider(this.bullets, this.platforms, this.destroyBullet, null, this);
         this.physics.add.collider(this.bossBalls, this.platforms, this.destroyBullet, null, this);
-        
+
         // Add overlap detection for damage
         this.physics.add.overlap(this.ruhaan, this.bullets, this.hitBoss, null, this);
         this.physics.add.overlap(this.aarav, this.bossBalls, this.hitPlayer, null, this);
@@ -183,7 +190,9 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: {
+                y: 300
+            },
             debug: false
         }
     },
