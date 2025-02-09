@@ -1,133 +1,194 @@
-// Game Setup
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+class BossGame extends Phaser.Scene {
+    constructor() {
+        super();
+        // Initialize game variables
+        this.aarav = null;
+        this.ruhaan = null;
+        this.platforms = null;
+        this.bullets = null;
+        this.bossBalls = null;
+        this.aaravHealth = 100;
+        this.ruhhanHealth = 400; // 4x Aarav's health
+        this.lastShot = 0;
+        this.lastBossAttack = 0;
+    }
 
-// Game variables
-let gameWidth = 800;
-let gameHeight = 600;
-canvas.width = gameWidth;
-canvas.height = gameHeight;
+    create() {
+        // Set background color
+        this.cameras.main.setBackgroundColor('#4488AA');
 
-let aarav = {
-    x: 100,
-    y: 500,
-    width: 50,
-    height: 50,
-    speed: 5,
-    velocityX: 0,
-    velocityY: 0,
-    health: 100,  // Aarav's health
-    isJumping: false,
-    facingRight: true, // To track Aarav's movement direction
-    spriteSheet: {
-        left: [], // Sprites for left movement
-        right: [], // Sprites for right movement
-        jump: [] // Sprites for jumping
-    },
-    // Load sprites
-    loadSprites: function() {
-        // You can replace these paths with the actual paths to your sprite images
-        for (let i = 0; i < 6; i++) {
-            this.spriteSheet.left.push(new Image());
-            this.spriteSheet.left[i].src = `aarav_left_${i}.png`; // Add the correct sprite file paths
-            this.spriteSheet.right.push(new Image());
-            this.spriteSheet.right[i].src = `aarav_right_${i}.png`; // Add the correct sprite file paths
+        // Create static group for platforms
+        this.platforms = this.physics.add.staticGroup();
+        
+        // Create main platform/ground
+        this.platforms.create(400, 580, 'platform')
+            .setScale(2, 0.5)
+            .refreshBody();
+
+        // Create additional platforms
+        this.platforms.create(600, 400, 'platform')
+            .setScale(0.5, 0.2)
+            .refreshBody();
+        this.platforms.create(200, 300, 'platform')
+            .setScale(0.5, 0.2)
+            .refreshBody();
+
+        // Create Aarav (hero)
+        this.aarav = this.add.rectangle(100, 450, 50, 80, 0x00ff00);
+        this.physics.add.existing(this.aarav);
+        this.aarav.body.setBounce(0.2);
+        this.aarav.body.setCollideWorldBounds(true);
+        this.aarav.body.setGravityY(300);
+
+        // Create Ruhaan (boss)
+        this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
+        this.physics.add.existing(this.ruhaan);
+        this.ruhaan.body.setBounce(0.2);
+        this.ruhaan.body.setCollideWorldBounds(true);
+        this.ruhaan.body.setGravityY(300);
+
+        // Create groups for projectiles
+        this.bullets = this.physics.add.group();
+        this.bossBalls = this.physics.add.group();
+
+        // Add colliders
+        this.physics.add.collider(this.aarav, this.platforms);
+        this.physics.add.collider(this.ruhaan, this.platforms);
+        this.physics.add.collider(this.bullets, this.platforms, this.destroyBullet, null, this);
+        this.physics.add.collider(this.bossBalls, this.platforms, this.destroyBullet, null, this);
+        
+        // Add overlap detection for damage
+        this.physics.add.overlap(this.ruhaan, this.bullets, this.hitBoss, null, this);
+        this.physics.add.overlap(this.aarav, this.bossBalls, this.hitPlayer, null, this);
+
+        // Create health bars
+        this.aaravHealthBar = this.add.rectangle(100, 50, 200, 20, 0x00ff00);
+        this.aaravHealthBar.setOrigin(0, 0);
+        this.ruhhanHealthBar = this.add.rectangle(500, 50, 200, 20, 0xff0000);
+        this.ruhhanHealthBar.setOrigin(0, 0);
+
+        // Setup keyboard controls
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    }
+
+    update() {
+        // Player movement
+        if (this.cursors.left.isDown) {
+            this.aarav.body.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.aarav.body.setVelocityX(160);
+        } else {
+            this.aarav.body.setVelocityX(0);
+        }
+
+        // Player jump
+        if (this.cursors.up.isDown && this.aarav.body.touching.down) {
+            this.aarav.body.setVelocityY(-400);
+        }
+
+        // Player shoot
+        if (this.spaceKey.isDown && this.time.now > this.lastShot + 500) {
+            this.shoot();
+            this.lastShot = this.time.now;
+        }
+
+        // Boss AI and attacks
+        this.updateBoss();
+
+        // Update health bars
+        this.aaravHealthBar.setScale(this.aaravHealth / 100, 1);
+        this.ruhhanHealthBar.setScale(this.ruhhanHealth / 400, 1);
+
+        // Check for game over
+        if (this.aaravHealth <= 0 || this.ruhhanHealth <= 0) {
+            this.gameOver();
         }
     }
+
+    shoot() {
+        const bullet = this.add.rectangle(this.aarav.x, this.aarav.y, 10, 5, 0xffff00);
+        this.bullets.add(bullet);
+        bullet.body.setVelocityX(400);
+    }
+
+    updateBoss() {
+        // Basic boss movement
+        if (this.time.now > this.lastBossAttack + 2000) {
+            // Choose random attack
+            if (Math.random() < 0.5) {
+                this.bossBallAttack();
+            } else {
+                this.bossJumpAttack();
+            }
+            this.lastBossAttack = this.time.now;
+        }
+
+        // Move towards player
+        const direction = this.aarav.x - this.ruhaan.x;
+        this.ruhaan.body.setVelocityX(direction < 0 ? -100 : 100);
+    }
+
+    bossBallAttack() {
+        const ball = this.add.circle(this.ruhaan.x, this.ruhaan.y, 15, 0xff6600);
+        this.bossBalls.add(ball);
+        const angle = Phaser.Math.Angle.Between(
+            this.ruhaan.x, this.ruhaan.y,
+            this.aarav.x, this.aarav.y
+        );
+        this.physics.moveTo(ball, this.aarav.x, this.aarav.y, 300);
+    }
+
+    bossJumpAttack() {
+        if (this.ruhaan.body.touching.down) {
+            this.ruhaan.body.setVelocityY(-500);
+        }
+    }
+
+    hitBoss(ruhaan, bullet) {
+        bullet.destroy();
+        this.ruhhanHealth -= 10;
+        if (this.ruhhanHealth <= 0) {
+            this.gameOver();
+        }
+    }
+
+    hitPlayer(aarav, ball) {
+        ball.destroy();
+        this.aaravHealth -= 25;
+        if (this.aaravHealth <= 0) {
+            this.gameOver();
+        }
+    }
+
+    destroyBullet(bullet) {
+        bullet.destroy();
+    }
+
+    gameOver() {
+        this.scene.pause();
+        const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
+        this.add.text(400, 300, `Game Over! ${winner} wins!`, {
+            fontSize: '32px',
+            fill: '#fff'
+        }).setOrigin(0.5);
+    }
+}
+
+// Game configuration
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
+    scene: BossGame
 };
 
-let ruhaan = {
-    x: 600,
-    y: 500,
-    width: 80,
-    height: 80,
-    health: 400,  // Ruhaan's health (4x more than Aarav)
-    speed: 3,
-    isJumping: false,
-    velocityX: 0,
-    velocityY: 0,
-    attackCooldown: 0, // Tracks cooldown for attack
-    sprite: new Image(),
-    // Load Ruhaan's sprite
-    loadSprite: function() {
-        this.sprite.src = 'ruhaan_sprite.png'; // Replace with Ruhaan's sprite image path
-    }
-};
-
-// Platform setup
-let platforms = [
-    { x: 100, y: 550, width: 200, height: 20 }, // Example platform
-    { x: 400, y: 400, width: 200, height: 20 }
-];
-
-// Bullet setup for Aarav
-let bullets = [];
-let bulletSpeed = 10;
-
-let gravity = 0.8;
-let jumpPower = 12;
-
-// Load all sprites and resources
-aarav.loadSprites();
-ruhaan.loadSprite();
-
-// Handle user input for movement and shooting
-let keys = {
-    left: false,
-    right: false,
-    up: false,
-    shoot: false
-};
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = true;
-    if (e.key === 'ArrowRight') keys.right = true;
-    if (e.key === 'ArrowUp') keys.up = true;
-    if (e.key === ' ') keys.shoot = true;
-});
-
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = false;
-    if (e.key === 'ArrowRight') keys.right = false;
-    if (e.key === 'ArrowUp') keys.up = false;
-    if (e.key === ' ') keys.shoot = false;
-});
-
-// Physics and movement for Aarav and Ruhaan
-function update() {
-    // Aarav's movement and jumping
-    if (keys.left) {
-        aarav.velocityX = -aarav.speed;
-        aarav.facingRight = false;
-    } else if (keys.right) {
-        aarav.velocityX = aarav.speed;
-        aarav.facingRight = true;
-    } else {
-        aarav.velocityX = 0;
-    }
-
-    if (keys.up && !aarav.isJumping) {
-        aarav.velocityY = -jumpPower;
-        aarav.isJumping = true;
-    }
-
-    // Apply gravity to Aarav
-    if (aarav.y + aarav.height < gameHeight) {
-        aarav.velocityY += gravity;
-    } else {
-        aarav.velocityY = 0;
-        aarav.isJumping = false;
-        aarav.y = gameHeight - aarav.height;
-    }
-
-    // Move Aarav
-    aarav.x += aarav.velocityX;
-    aarav.y += aarav.velocityY;
-
-    // Collision with platforms
-    platforms.forEach(platform => {
-        if (aarav.x < platform.x + platform.width &&
-            aarav.x + aarav.width > platform.x &&
-            aarav.y + aarav.height > platform.y &&
-            aarav.y + aarav.height < platform.y + 10) {
-          
+// Create the game instance
+const game = new Phaser.Game(config);
