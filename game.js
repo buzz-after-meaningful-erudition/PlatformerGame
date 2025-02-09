@@ -76,6 +76,11 @@ class BossGame extends Phaser.Scene {
         this.ruhhanHealthBar.setOrigin(0, 0);
 
         // Setup keyboard controls
+        // Add special attack charge bar
+        this.chargeBar = this.add.rectangle(100, 80, 200, 10, 0x333333);
+        this.chargeBar.setOrigin(0, 0);
+        this.chargeBarFill = this.add.rectangle(100, 80, 0, 10, 0xffff00);
+        this.chargeBarFill.setOrigin(0, 0);
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -93,7 +98,17 @@ class BossGame extends Phaser.Scene {
 
         // Player jump
         if (this.cursors.up.isDown && this.aarav.body.touching.down) {
-            this.aarav.body.setVelocityY(-400);
+            this.aarav.body.setVelocityY(-500);
+        }
+        // Add air control (slightly reduced movement speed in air)
+        const moveSpeed = this.aarav.body.touching.down ? 160 : 120;
+
+        if (this.cursors.left.isDown) {
+            this.aarav.body.setVelocityX(-moveSpeed);
+        } else if (this.cursors.right.isDown) {
+            this.aarav.body.setVelocityX(moveSpeed);
+        } else {
+            this.aarav.body.setVelocityX(0);
         }
 
         // Player shoot
@@ -109,9 +124,10 @@ class BossGame extends Phaser.Scene {
         // Boss AI and attacks
         this.updateBoss();
 
-        // Update health bars
+        // Update health bars and charge bar
         this.aaravHealthBar.setScale(this.aaravHealth / 100, 1);
         this.ruhhanHealthBar.setScale(this.ruhhanHealth / 400, 1);
+        this.chargeBarFill.width = (this.specialAttackCharge / 10) * 200;
 
         // Check for game over
         if (this.aaravHealth <= 0 || this.ruhhanHealth <= 0) {
@@ -123,6 +139,7 @@ class BossGame extends Phaser.Scene {
         const bullet = this.add.rectangle(this.aarav.x, this.aarav.y, 10, 5, 0xffff00);
         this.bullets.add(bullet);
         bullet.body.setVelocityX(400);
+        bullet.body.setAllowGravity(false);
     }
 
     updateBoss() {
@@ -167,6 +184,7 @@ class BossGame extends Phaser.Scene {
     bossBallAttack() {
         const ball = this.add.circle(this.ruhaan.x, this.ruhaan.y, 15, 0xff6600);
         this.bossBalls.add(ball);
+        ball.body.setAllowGravity(false);
         const angle = Phaser.Math.Angle.Between(
             this.ruhaan.x, this.ruhaan.y,
             this.aarav.x, this.aarav.y
