@@ -11,6 +11,7 @@ class BossGame extends Phaser.Scene {
         this.ruhhanHealth = 400; // 4x Aarav's health
         this.lastShot = 0;
         this.lastBossAttack = 0;
+        this.specialAttackCharge = 0; // Counter for special attack
     }
     preload() {
         // Create a temporary platform texture
@@ -77,6 +78,7 @@ class BossGame extends Phaser.Scene {
         // Setup keyboard controls
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     }
 
     update() {
@@ -99,7 +101,11 @@ class BossGame extends Phaser.Scene {
             this.shoot();
             this.lastShot = this.time.now;
         }
-
+        // Special Attack
+        if (this.qKey.isDown && this.specialAttackCharge >= 10) {
+            this.specialAttack();
+            this.specialAttackCharge = 0;
+        }
         // Boss AI and attacks
         this.updateBoss();
 
@@ -120,20 +126,42 @@ class BossGame extends Phaser.Scene {
     }
 
     updateBoss() {
-        // Basic boss movement
+        const distanceToPlayer = Phaser.Math.Distance.Between(
+            this.ruhaan.x, this.ruhaan.y,
+            this.aarav.x, this.aarav.y
+        );
+        // Smart movement
+        const direction = this.aarav.x - this.ruhaan.x;
+        if (distanceToPlayer > 300) {
+            this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
+        } else if (distanceToPlayer < 200) {
+            this.ruhaan.body.setVelocityX(direction < 0 ? 150 : -150);
+        }
+        // Attack pattern selection
         if (this.time.now > this.lastBossAttack + 2000) {
-            // Choose random attack
-            if (Math.random() < 0.5) {
-                this.bossBallAttack();
+            const attackChoice = Math.random();
+
+            if (distanceToPlayer < 200) {
+                // Close range: prefer jump attack or spin attack
+                if (attackChoice < 0.4) {
+                    this.bossJumpAttack();
+                } else if (attackChoice < 0.8) {
+                    this.bossSpinAttack();
+                } else {
+                    this.bossBallAttack();
+                }
             } else {
-                this.bossJumpAttack();
+                // Long range: prefer ball attack or multi-ball
+                if (attackChoice < 0.4) {
+                    this.bossBallAttack();
+                } else if (attackChoice < 0.8) {
+                    this.bossMultiBallAttack();
+                } else {
+                    this.bossJumpAttack();
+                }
             }
             this.lastBossAttack = this.time.now;
         }
-
-        // Move towards player
-        const direction = this.aarav.x - this.ruhaan.x;
-        this.ruhaan.body.setVelocityX(direction < 0 ? -100 : 100);
     }
 
     bossBallAttack() {
@@ -151,10 +179,39 @@ class BossGame extends Phaser.Scene {
             this.ruhaan.body.setVelocityY(-500);
         }
     }
-
+    bossSpinAttack() {
+        // Create a circle of projectiles around the boss
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI * 2) / 8;
+            const ball = this.add.circle(this.ruhaan.x, this.ruhaan.y, 10, 0xff6600);
+            this.bossBalls.add(ball);
+            ball.body.setVelocity(
+                Math.cos(angle) * 300,
+                Math.sin(angle) * 300
+            );
+            ball.body.setAllowGravity(false);
+        }
+    }
+    bossMultiBallAttack() {
+        // Fire three balls in a spread pattern
+        for (let i = -1; i <= 1; i++) {
+            const ball = this.add.circle(this.ruhaan.x, this.ruhaan.y, 15, 0xff6600);
+            this.bossBalls.add(ball);
+            const angle = Phaser.Math.Angle.Between(
+                this.ruhaan.x, this.ruhaan.y,
+                this.aarav.x, this.aarav.y
+            ) + (i * Math.PI / 8);
+            ball.body.setVelocity(
+                Math.cos(angle) * 300,
+                Math.sin(angle) * 300
+            );
+            ball.body.setAllowGravity(false);
+        }
+    }
     hitBoss(ruhaan, bullet) {
         bullet.destroy();
         this.ruhhanHealth -= 10;
+        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1);
         if (this.ruhhanHealth <= 0) {
             this.gameOver();
         }
@@ -171,7 +228,28 @@ class BossGame extends Phaser.Scene {
     destroyBullet(bullet) {
         bullet.destroy();
     }
+    specialAttack() {
+        // Create a powerful beam attack
+        const beam = this.add.rectangle(this.aarav.x, this.aarav.y, 400, 20, 0x00ffff);
+        this.bullets.add(beam);
+        beam.body.setAllowGravity(false);
+        beam.body.setVelocityX(800);
 
+        // Special attack does more damage
+        this.physics.add.overlap(this.ruhaan, beam, (ruhaan, beam) => {
+            beam.destroy();
+            this.ruhhanHealth -= 50;
+            if (this.ruhhanHealth <= 0) {
+                this.gameOver();
+            }
+        }, null, this);
+        // Destroy beam after 1 second
+        this.time.delayedCall(1000, () => {
+            if (beam.active) {
+                beam.destroy();
+            }
+        });
+    }
     gameOver() {
         this.scene.pause();
         const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
