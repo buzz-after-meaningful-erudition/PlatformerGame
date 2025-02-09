@@ -44,9 +44,9 @@ class BossGame extends Phaser.Scene {
         // Create Aarav (hero)
         this.aarav = this.add.rectangle(100, 450, 50, 80, 0x00ff00);
         this.physics.add.existing(this.aarav);
-        this.aarav.body.setBounce(0.2);
+        this.aarav.body.setBounce(0);
         this.aarav.body.setCollideWorldBounds(true);
-        this.aarav.body.setGravityY(300);
+        this.aarav.body.setGravityY(600);
 
         // Create Ruhaan (boss)
         this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
@@ -98,8 +98,9 @@ class BossGame extends Phaser.Scene {
             this.aarav.body.setVelocityX(0);
         }
         // Player jump with better ground detection
-        if (this.cursors.up.isDown && this.aarav.body.touching.down) {
-            this.aarav.body.setVelocityY(-600);
+        // Player jump with better ground detection
+        if (this.cursors.up.isDown && this.aarav.body.blocked.down) {
+            this.aarav.body.setVelocityY(-500);
         }
 
         // Player shoot
