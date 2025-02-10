@@ -34,6 +34,9 @@ class BossGame extends Phaser.Scene {
         this.aarav = null;
         this.jumpCount = 0;
         this.facingRight = true; // Track which direction Aarav is facing
+        this.hyperChargeAmount = 0;
+        this.isHyperCharged = false;
+        this.hyperChargeActive = false;
         this.ruhaan = null;
         this.platforms = null;
         this.bullets = null;
@@ -128,6 +131,11 @@ class BossGame extends Phaser.Scene {
         this.chargeBar.setOrigin(0, 0);
         this.chargeBarFill = this.add.rectangle(100, 80, 0, 10, 0xffff00);
         this.chargeBarFill.setOrigin(0, 0);
+        // Add hypercharge bar
+        this.hyperChargeBar = this.add.rectangle(100, 100, 200, 10, 0x333333);
+        this.hyperChargeBar.setOrigin(0, 0);
+        this.hyperChargeFill = this.add.rectangle(100, 100, 0, 10, 0x800080);
+        this.hyperChargeFill.setOrigin(0, 0);
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -136,7 +144,8 @@ class BossGame extends Phaser.Scene {
 
     update() {
         // Player movement and jump
-        const moveSpeed = this.aarav.body.touching.down ? 300 : 250;
+        const baseSpeed = this.aarav.body.touching.down ? 300 : 250;
+        const moveSpeed = this.hyperChargeActive ? baseSpeed * 1.5 : baseSpeed;
 
         if (this.cursors.left.isDown) {
             this.aarav.body.setVelocityX(-moveSpeed);
@@ -179,7 +188,8 @@ class BossGame extends Phaser.Scene {
         }
 
         // Player shoot
-        if (this.spaceKey.isDown && this.time.now > this.lastShot + 500) {
+        const shootDelay = this.hyperChargeActive ? 250 : 500;
+        if (this.spaceKey.isDown && this.time.now > this.lastShot + shootDelay) {
             this.shoot();
             this.lastShot = this.time.now;
         }
@@ -196,10 +206,15 @@ class BossGame extends Phaser.Scene {
         // Boss AI and attacks
         this.updateBoss();
 
-        // Update health bars and charge bar
+        // Update health bars and charge bars
         this.aaravHealthBar.setScale(this.aaravHealth / 100, 1);
         this.ruhhanHealthBar.setScale(this.ruhhanHealth / 400, 1);
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 200;
+        this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 200;
+        // Handle hypercharge activation
+        if (this.hyperChargeAmount >= 10 && !this.hyperChargeActive && this.input.keyboard.addKey('R').isDown) {
+            this.activateHyperCharge();
+        }
 
         // Check for game over
         if (this.aaravHealth <= 0 || this.ruhhanHealth <= 0) {
@@ -356,6 +371,7 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
         this.ruhhanHealth -= 10;
         this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1);
+        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.5);
         if (this.ruhhanHealth <= 0) {
             this.gameOver();
         }
@@ -363,7 +379,8 @@ class BossGame extends Phaser.Scene {
 
     hitPlayer(aarav, ball) {
         ball.destroy();
-        this.aaravHealth -= 15; // Reduced damage from 35 to 15
+        const damage = this.hyperChargeActive ? 10 : 15; // 35% less damage when hypercharged
+        this.aaravHealth -= damage;
         if (this.aaravHealth <= 0) {
             this.gameOver();
         }
@@ -437,7 +454,22 @@ class BossGame extends Phaser.Scene {
             // Special attack does more damage
             this.physics.add.overlap(this.ruhaan, beam, (ruhaan, beam) => {
                 beam.destroy();
-                this.ruhhanHealth -= 50; // Regular bullets do 10, this does 50 (5x damage)
+                const damage = this.hyperChargeActive ? 150 : 100; // 50% more damage when hypercharged
+                this.ruhhanHealth -= damage;
+                // Visual feedback for big damage
+                const damageText = this.add.text(this.ruhaan.x, this.ruhaan.y - 50, '-100!', {
+                    fontSize: '32px',
+                    fill: '#ff0000'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: damageText,
+                    y: damageText.y - 80,
+                    alpha: 0,
+                    duration: 800,
+                    onComplete: () => damageText.destroy()
+                });
+
                 if (this.ruhhanHealth <= 0) {
                     this.gameOver();
                 }
@@ -451,8 +483,9 @@ class BossGame extends Phaser.Scene {
         });
     }
     healingSuper() {
-        // Heal for 50 HP, not exceeding max health
-        this.aaravHealth = Math.min(100, this.aaravHealth + 50);
+        // Heal for 30% (or 60% when hypercharged) of max health
+        const healAmount = this.hyperChargeActive ? 60 : 30;
+        this.aaravHealth = Math.min(100, this.aaravHealth + healAmount);
         // Create healing animation (plus signs)
         for (let i = 0; i < 5; i++) {
             const plusSign = this.add.text(
@@ -473,13 +506,41 @@ class BossGame extends Phaser.Scene {
             });
         }
     }
+    activateHyperCharge() {
+        this.hyperChargeActive = true;
+        this.hyperChargeAmount = 0;
+        // Visual effect for activation
+        const flash = this.add.rectangle(0, 0, 1200, 800, 0x800080, 0.3);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => flash.destroy()
+        });
+        // Purple aura around player
+        const aura = this.add.circle(this.aarav.x, this.aarav.y, 40, 0x800080, 0.3);
+        this.tweens.add({
+            targets: aura,
+            alpha: 0.6,
+            scale: 1.2,
+            duration: 500,
+            yoyo: true,
+            repeat: 9,
+            onComplete: () => aura.destroy()
+        });
+        // Deactivate after 5 seconds
+        this.time.delayedCall(5000, () => {
+            this.hyperChargeActive = false;
+        });
+    }
     showControls() {
         const controls = [
             'Controls:',
             'Arrow Keys: Move and Jump (Double Jump available)',
             'SPACE: Shoot',
             'Q: Special Attack (when charged)',
-            'E: Healing (when charged)'
+            'E: Healing (when charged)',
+            'R: Activate Hypercharge (when purple bar is full)'
         ];
         const controlsBox = this.add.container(600, 200);
         // Add semi-transparent background
