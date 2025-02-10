@@ -21,7 +21,10 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         startButton.on('pointerdown', () => {
-            this.scene.start('BossGame');
+            this.scene.stop('StartScreen');
+            this.scene.start('BossGame', {
+                firstStart: true
+            });
         });
     }
 }
@@ -42,14 +45,16 @@ class BossGame extends Phaser.Scene {
         this.platforms = null;
         this.bullets = null;
         this.bossBalls = null;
-        this.aaravHealth = 100;
-        this.ruhhanHealth = 500; // 5x Aarav's health
+        this.aaravHealth = 150;
+        this.ruhhanHealth = 1200; // 8x Aarav's health
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
         this.firstStart = true; // Track if it's the first time starting
     }
     preload() {
+        // Load background music
+        this.load.audio('bgMusic', 'Bossfight - Milky Ways.mp3?5Zus');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -58,6 +63,12 @@ class BossGame extends Phaser.Scene {
         graphics.destroy();
     }
     create() {
+        // Start background music
+        this.bgMusic = this.sound.add('bgMusic', {
+            loop: true,
+            volume: 0.7
+        });
+        this.bgMusic.play();
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
         this.cameras.main.setBounds(0, 0, 1600, 1000);
@@ -238,10 +249,13 @@ class BossGame extends Phaser.Scene {
         }
 
         // Player shoot
-        const shootDelay = this.hyperChargeActive ? 250 : 500;
-        if (this.spaceKey.isDown && this.time.now > this.lastShot + shootDelay) {
-            this.shoot();
-            this.lastShot = this.time.now;
+        // Only allow shooting if not performing Q special attack
+        if (!this.isPerformingSpecial) {
+            const shootDelay = this.hyperChargeActive ? 250 : 500;
+            if (this.spaceKey.isDown && this.time.now > this.lastShot + shootDelay) {
+                this.shoot();
+                this.lastShot = this.time.now;
+            }
         }
         // Special Attacks
         if (this.specialAttackCharge >= 10) {
@@ -257,8 +271,8 @@ class BossGame extends Phaser.Scene {
         this.updateBoss();
 
         // Update health bars and charge bars
-        this.aaravHealthBar.width = (this.aaravHealth / 100) * 400;
-        this.ruhhanHealthBar.width = (this.ruhhanHealth / 500) * 400;
+        this.aaravHealthBar.width = (this.aaravHealth / 150) * 400;
+        this.ruhhanHealthBar.width = (this.ruhhanHealth / 1200) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
         // Handle hypercharge activation
@@ -293,7 +307,7 @@ class BossGame extends Phaser.Scene {
             if (distanceToPlayer > 500) {
                 // Move to closest platform above player
                 this.ruhaan.body.setVelocityX(direction < 0 ? -250 : 250);
-                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-700);
+                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-800);
             } else if (distanceToPlayer < 200) {
                 // Back away and possibly prepare for ground pound
                 this.ruhaan.body.setVelocityX(direction < 0 ? 300 : -300);
@@ -419,9 +433,13 @@ class BossGame extends Phaser.Scene {
     }
     hitBoss(ruhaan, bullet) {
         bullet.destroy();
-        this.ruhhanHealth -= 10;
-        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1);
-        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.5);
+        if (bullet.isSpecialBeam) {
+            this.ruhhanHealth -= 50;
+        } else {
+            this.ruhhanHealth -= 10;
+        }
+        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1.3);
+        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.455);
         if (this.ruhhanHealth <= 0) {
             this.gameOver();
         }
@@ -440,7 +458,7 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
     }
     specialAttack() {
-        // Charging effect
+        this.isPerformingSpecial = true;
         const chargeTime = 1000; // 1 second charge
         const beamLength = 500;
         const beamWidth = 40;
@@ -462,6 +480,7 @@ class BossGame extends Phaser.Scene {
             // Create main beam
             const beam = this.add.rectangle(this.aarav.x, this.aarav.y, beamLength, beamWidth, this.hyperChargeActive ? 0x800080 : 0x00ffff);
             this.bullets.add(beam);
+            beam.isSpecialBeam = true; // Mark this as a special beam
             beam.body.setAllowGravity(false);
             beam.body.setVelocityX(1000);
             // Add particle effects
@@ -529,6 +548,7 @@ class BossGame extends Phaser.Scene {
                 if (beam.active) {
                     beam.destroy();
                 }
+                this.isPerformingSpecial = false;
             });
         });
     }
@@ -592,7 +612,7 @@ class BossGame extends Phaser.Scene {
                     }
                 }
             },
-            repeat: 49 // 5 seconds worth of smoke (50 * 100ms)
+            repeat: 39 // 4 seconds worth of smoke (40 * 100ms)
         });
         // Purple aura around player
         const aura = this.add.circle(this.aarav.x, this.aarav.y, 40, 0x800080, 0.3);
@@ -605,8 +625,8 @@ class BossGame extends Phaser.Scene {
             repeat: 9,
             onComplete: () => aura.destroy()
         });
-        // Deactivate after 5 seconds
-        this.time.delayedCall(5000, () => {
+        // Deactivate after 4 seconds
+        this.time.delayedCall(4000, () => {
             this.hyperChargeActive = false;
         });
     }
@@ -641,14 +661,25 @@ class BossGame extends Phaser.Scene {
         });
     }
     gameOver() {
+        // Disable all physics and input
+        this.physics.pause();
+        this.input.keyboard.enabled = false;
+
+        // Stop the background music
+        if (this.bgMusic) {
+            this.bgMusic.stop();
+        }
         const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
+
         // Create semi-transparent background
         const bg = this.add.rectangle(800, 500, 1600, 1000, 0x000000, 0.7);
+
         // Game over text
         this.add.text(800, 400, `Game Over! ${winner} wins!`, {
             fontSize: '64px',
             fill: '#fff'
         }).setOrigin(0.5);
+
         // Restart button
         const restartButton = this.add.text(800, 500, 'Play Again', {
                 fontSize: '32px',
@@ -659,6 +690,7 @@ class BossGame extends Phaser.Scene {
             .setStyle({
                 backgroundColor: '#111'
             });
+
         // Main menu button
         const menuButton = this.add.text(800, 570, 'Main Menu', {
                 fontSize: '32px',
@@ -670,11 +702,27 @@ class BossGame extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         restartButton.on('pointerdown', () => {
-            this.scene.stop();
-            this.scene.start('BossGame');
+            // Reset all game variables
+            this.aaravHealth = 150;
+            this.ruhhanHealth = 1200;
+            this.specialAttackCharge = 0;
+            this.hyperChargeAmount = 0;
+            this.hyperChargeActive = false;
+
+            // Re-enable input
+            this.input.keyboard.enabled = true;
+
+            // Restart the scene properly
+            this.scene.restart();
         });
         menuButton.on('pointerdown', () => {
-            this.scene.stop();
+            // Stop the music
+            if (this.bgMusic) {
+                this.bgMusic.stop();
+            }
+            // Clean up current scene
+            this.scene.stop('BossGame');
+            // Start the start screen
             this.scene.start('StartScreen');
         });
     }
