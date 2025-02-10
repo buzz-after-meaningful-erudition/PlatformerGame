@@ -1,9 +1,37 @@
+class StartScreen extends Phaser.Scene {
+    constructor() {
+        super({
+            key: 'StartScreen'
+        });
+    }
+    create() {
+        // Title
+        this.add.text(600, 300, 'AARAV VS RUHAAN', {
+            fontSize: '64px',
+            fill: '#fff'
+        }).setOrigin(0.5);
+        // Start button
+        const startButton = this.add.text(600, 400, 'Click to Start', {
+                fontSize: '32px',
+                fill: '#fff'
+            }).setOrigin(0.5)
+            .setInteractive()
+            .setPadding(10)
+            .setStyle({
+                backgroundColor: '#111'
+            });
+        startButton.on('pointerdown', () => {
+            this.scene.start('BossGame');
+        });
+    }
+}
 class BossGame extends Phaser.Scene {
     constructor() {
         super();
         // Initialize game variables
         this.aarav = null;
         this.jumpCount = 0;
+        this.facingRight = true; // Track which direction Aarav is facing
         this.ruhaan = null;
         this.platforms = null;
         this.bullets = null;
@@ -13,6 +41,7 @@ class BossGame extends Phaser.Scene {
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
+        this.firstStart = true; // Track if it's the first time starting
     }
     preload() {
         // Create a temporary platform texture
@@ -85,6 +114,10 @@ class BossGame extends Phaser.Scene {
         this.ruhhanHealthBar.setOrigin(0, 0);
 
         // Setup keyboard controls
+        if (this.firstStart) {
+            this.showControls();
+            this.firstStart = false;
+        }
         // Add special attack charge bar
         this.chargeBar = this.add.rectangle(100, 80, 200, 10, 0x333333);
         this.chargeBar.setOrigin(0, 0);
@@ -98,12 +131,16 @@ class BossGame extends Phaser.Scene {
 
     update() {
         // Player movement and jump
-        const moveSpeed = this.aarav.body.touching.down ? 160 : 120;
+        const moveSpeed = this.aarav.body.touching.down ? 300 : 250;
 
         if (this.cursors.left.isDown) {
             this.aarav.body.setVelocityX(-moveSpeed);
+            this.facingRight = false;
+            this.aarav.setScale(-1, 1); // Flip sprite horizontally
         } else if (this.cursors.right.isDown) {
             this.aarav.body.setVelocityX(moveSpeed);
+            this.facingRight = true;
+            this.aarav.setScale(1, 1); // Reset sprite orientation
         } else {
             this.aarav.body.setVelocityX(0);
         }
@@ -166,9 +203,11 @@ class BossGame extends Phaser.Scene {
     }
 
     shoot() {
-        const bullet = this.add.rectangle(this.aarav.x, this.aarav.y, 10, 5, 0xffff00);
+        const bulletSpeed = 400;
+        const bulletOffset = this.facingRight ? 25 : -25;
+        const bullet = this.add.rectangle(this.aarav.x + bulletOffset, this.aarav.y, 10, 5, 0xffff00);
         this.bullets.add(bullet);
-        bullet.body.setVelocityX(400);
+        bullet.body.setVelocityX(this.facingRight ? bulletSpeed : -bulletSpeed);
         bullet.body.setAllowGravity(false);
     }
 
@@ -429,13 +468,74 @@ class BossGame extends Phaser.Scene {
             });
         }
     }
+    showControls() {
+        const controls = [
+            'Controls:',
+            'Arrow Keys: Move and Jump (Double Jump available)',
+            'SPACE: Shoot',
+            'Q: Special Attack (when charged)',
+            'E: Healing (when charged)'
+        ];
+        const controlsBox = this.add.container(600, 200);
+        // Add semi-transparent background
+        const bg = this.add.rectangle(0, 0, 500, 200, 0x000000, 0.7);
+        controlsBox.add(bg);
+        // Add control text
+        controls.forEach((text, i) => {
+            const controlText = this.add.text(0, -80 + (i * 30), text, {
+                fontSize: '20px',
+                fill: '#fff'
+            }).setOrigin(0.5);
+            controlsBox.add(controlText);
+        });
+        // Fade out after 5 seconds
+        this.tweens.add({
+            targets: controlsBox,
+            alpha: 0,
+            duration: 1000,
+            delay: 5000,
+            onComplete: () => controlsBox.destroy()
+        });
+    }
     gameOver() {
         this.scene.pause();
         const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
-        this.add.text(400, 300, `Game Over! ${winner} wins!`, {
-            fontSize: '32px',
+
+        // Create semi-transparent background
+        const bg = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
+
+        // Game over text
+        this.add.text(600, 300, `Game Over! ${winner} wins!`, {
+            fontSize: '48px',
             fill: '#fff'
         }).setOrigin(0.5);
+
+        // Restart button
+        const restartButton = this.add.text(600, 400, 'Play Again', {
+                fontSize: '32px',
+                fill: '#fff'
+            }).setOrigin(0.5)
+            .setInteractive()
+            .setPadding(10)
+            .setStyle({
+                backgroundColor: '#111'
+            });
+        // Main menu button
+        const menuButton = this.add.text(600, 470, 'Main Menu', {
+                fontSize: '32px',
+                fill: '#fff'
+            }).setOrigin(0.5)
+            .setInteractive()
+            .setPadding(10)
+            .setStyle({
+                backgroundColor: '#111'
+            });
+        restartButton.on('pointerdown', () => {
+            this.scene.restart();
+        });
+        menuButton.on('pointerdown', () => {
+            this.scene.start('StartScreen');
+        });
     }
 }
 
@@ -453,7 +553,7 @@ const config = {
             debug: false
         }
     },
-    scene: BossGame
+    scene: [StartScreen, BossGame]
 };
 
 // Create the game instance
