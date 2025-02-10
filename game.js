@@ -116,30 +116,75 @@ class BossGame extends Phaser.Scene {
         this.physics.add.overlap(this.ruhaan, this.bullets, this.hitBoss, null, this);
         this.physics.add.overlap(this.aarav, this.bossBalls, this.hitPlayer, null, this);
 
-        // Create health bars with backgrounds
-        // Aarav's health bar background
-        this.add.rectangle(150, 70, 300, 30, 0x333333).setOrigin(0, 0);
-        this.aaravHealthBar = this.add.rectangle(150, 70, 300, 30, 0x00ff00);
+        // Create UI container for better organization
+        this.uiContainer = this.add.container(0, 0);
+
+        // Aarav's health bar
+        const aaravHealthBg = this.add.rectangle(50, 50, 400, 40, 0x000000, 0.7);
+        const aaravHealthFrame = this.add.rectangle(50, 50, 400, 40, 0xffffff, 1);
+        this.aaravHealthBar = this.add.rectangle(50, 50, 400, 40, 0x00ff00);
+
+        aaravHealthBg.setOrigin(0, 0);
+        aaravHealthFrame.setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
         this.aaravHealthBar.setOrigin(0, 0);
-        // Ruhaan's health bar background
-        this.add.rectangle(750, 70, 300, 30, 0x333333).setOrigin(0, 0);
-        this.ruhhanHealthBar = this.add.rectangle(750, 70, 300, 30, 0xff0000);
+
+        // Add "AARAV" text
+        const aaravText = this.add.text(60, 20, 'AARAV', {
+            fontSize: '24px',
+            fill: '#fff',
+            fontStyle: 'bold'
+        });
+        // Ruhaan's health bar
+        const ruhhanHealthBg = this.add.rectangle(850, 50, 400, 40, 0x000000, 0.7);
+        const ruhhanHealthFrame = this.add.rectangle(850, 50, 400, 40, 0xffffff, 1);
+        this.ruhhanHealthBar = this.add.rectangle(850, 50, 400, 40, 0xff0000);
+
+        ruhhanHealthBg.setOrigin(0, 0);
+        ruhhanHealthFrame.setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
         this.ruhhanHealthBar.setOrigin(0, 0);
 
-        // Setup keyboard controls
-        if (this.firstStart) {
-            this.showControls();
-            this.firstStart = false;
-        }
-        // Add special attack charge bar
-        this.chargeBar = this.add.rectangle(150, 110, 300, 15, 0x333333);
-        this.chargeBar.setOrigin(0, 0);
-        this.chargeBarFill = this.add.rectangle(150, 110, 0, 15, 0xffff00);
+        // Add "RUHAAN" text
+        const ruhhanText = this.add.text(860, 20, 'RUHAAN', {
+            fontSize: '24px',
+            fill: '#fff',
+            fontStyle: 'bold'
+        });
+        // Special attack charge bar
+        const chargeBg = this.add.rectangle(50, 120, 400, 25, 0x000000, 0.7);
+        const chargeFrame = this.add.rectangle(50, 120, 400, 25, 0xffffff, 1);
+        this.chargeBarFill = this.add.rectangle(50, 120, 0, 25, 0xffff00);
+
+        chargeBg.setOrigin(0, 0);
+        chargeFrame.setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
         this.chargeBarFill.setOrigin(0, 0);
-        // Add hypercharge bar
-        this.hyperChargeBar = this.add.rectangle(150, 135, 300, 15, 0x333333);
-        this.hyperChargeBar.setOrigin(0, 0);
-        this.hyperChargeFill = this.add.rectangle(150, 135, 0, 15, 0x800080);
+
+        // Add "SUPER" text
+        const superText = this.add.text(60, 100, 'SUPER', {
+            fontSize: '20px',
+            fill: '#ffff00'
+        });
+        // Hypercharge bar
+        const hyperBg = this.add.rectangle(50, 175, 400, 25, 0x000000, 0.7);
+        const hyperFrame = this.add.rectangle(50, 175, 400, 25, 0xffffff, 1);
+        this.hyperChargeFill = this.add.rectangle(50, 175, 0, 25, 0x800080);
+
+        hyperBg.setOrigin(0, 0);
+        hyperFrame.setOrigin(0, 0).setStrokeStyle(2, 0xffffff);
+        this.hyperChargeFill.setOrigin(0, 0);
+
+        // Add "HYPER" text
+        const hyperText = this.add.text(60, 155, 'HYPER', {
+            fontSize: '20px',
+            fill: '#800080'
+        });
+
+        // Add all UI elements to the container
+        this.uiContainer.add([
+            aaravHealthBg, aaravHealthFrame, this.aaravHealthBar, aaravText,
+            ruhhanHealthBg, ruhhanHealthFrame, this.ruhhanHealthBar, ruhhanText,
+            chargeBg, chargeFrame, this.chargeBarFill, superText,
+            hyperBg, hyperFrame, this.hyperChargeFill, hyperText
+        ]);
         this.hyperChargeFill.setOrigin(0, 0);
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -212,10 +257,10 @@ class BossGame extends Phaser.Scene {
         this.updateBoss();
 
         // Update health bars and charge bars
-        this.aaravHealthBar.setScale(this.aaravHealth / 100, 1);
-        this.ruhhanHealthBar.setScale(this.ruhhanHealth / 500, 1);
-        this.chargeBarFill.width = (this.specialAttackCharge / 10) * 300;
-        this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 300;
+        this.aaravHealthBar.width = (this.aaravHealth / 100) * 400;
+        this.ruhhanHealthBar.width = (this.ruhhanHealth / 500) * 400;
+        this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
+        this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
         // Handle hypercharge activation
         if (this.hyperChargeAmount >= 10 && !this.hyperChargeActive && this.input.keyboard.addKey('R').isDown) {
             this.activateHyperCharge();
