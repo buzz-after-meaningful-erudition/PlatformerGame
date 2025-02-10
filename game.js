@@ -6,12 +6,12 @@ class StartScreen extends Phaser.Scene {
     }
     create() {
         // Title
-        this.add.text(600, 300, 'AARAV VS RUHAAN', {
-            fontSize: '64px',
+        this.add.text(800, 400, 'AARAV VS RUHAAN', {
+            fontSize: '84px',
             fill: '#fff'
         }).setOrigin(0.5);
         // Start button
-        const startButton = this.add.text(600, 400, 'Click to Start', {
+        const startButton = this.add.text(800, 500, 'Click to Start', {
                 fontSize: '32px',
                 fill: '#fff'
             }).setOrigin(0.5)
@@ -213,9 +213,9 @@ class BossGame extends Phaser.Scene {
 
         // Update health bars and charge bars
         this.aaravHealthBar.setScale(this.aaravHealth / 100, 1);
-        this.ruhhanHealthBar.setScale(this.ruhhanHealth / 400, 1);
-        this.chargeBarFill.width = (this.specialAttackCharge / 10) * 200;
-        this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 200;
+        this.ruhhanHealthBar.setScale(this.ruhhanHealth / 500, 1);
+        this.chargeBarFill.width = (this.specialAttackCharge / 10) * 300;
+        this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 300;
         // Handle hypercharge activation
         if (this.hyperChargeAmount >= 10 && !this.hyperChargeActive && this.input.keyboard.addKey('R').isDown) {
             this.activateHyperCharge();
@@ -514,15 +514,9 @@ class BossGame extends Phaser.Scene {
     activateHyperCharge() {
         this.hyperChargeActive = true;
         this.hyperChargeAmount = 0;
-        // Start depleting the hypercharge bar
-        this.hyperChargeTween = this.tweens.add({
-            targets: this.hyperChargeFill,
-            width: 0,
-            duration: this.hyperChargeDuration,
-            ease: 'Linear'
-        });
+        this.hyperChargeFill.width = 0;
         // Visual effect for activation
-        const flash = this.add.rectangle(0, 0, 1200, 800, 0x800080, 0.3);
+        const flash = this.add.rectangle(0, 0, 1600, 1000, 0x800080, 0.3);
         this.tweens.add({
             targets: flash,
             alpha: 0,
@@ -576,20 +570,16 @@ class BossGame extends Phaser.Scene {
         });
     }
     gameOver() {
-        this.scene.pause();
         const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
-
         // Create semi-transparent background
-        const bg = this.add.rectangle(600, 400, 1200, 800, 0x000000, 0.7);
-
+        const bg = this.add.rectangle(800, 500, 1600, 1000, 0x000000, 0.7);
         // Game over text
-        this.add.text(600, 300, `Game Over! ${winner} wins!`, {
-            fontSize: '48px',
+        this.add.text(800, 400, `Game Over! ${winner} wins!`, {
+            fontSize: '64px',
             fill: '#fff'
         }).setOrigin(0.5);
-
         // Restart button
-        const restartButton = this.add.text(600, 400, 'Play Again', {
+        const restartButton = this.add.text(800, 500, 'Play Again', {
                 fontSize: '32px',
                 fill: '#fff'
             }).setOrigin(0.5)
@@ -599,7 +589,7 @@ class BossGame extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         // Main menu button
-        const menuButton = this.add.text(600, 470, 'Main Menu', {
+        const menuButton = this.add.text(800, 570, 'Main Menu', {
                 fontSize: '32px',
                 fill: '#fff'
             }).setOrigin(0.5)
@@ -609,9 +599,11 @@ class BossGame extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         restartButton.on('pointerdown', () => {
+            this.scene.stop();
             this.scene.start('BossGame');
         });
         menuButton.on('pointerdown', () => {
+            this.scene.stop();
             this.scene.start('StartScreen');
         });
     }
