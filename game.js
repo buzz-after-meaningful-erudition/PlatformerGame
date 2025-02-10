@@ -46,15 +46,15 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         this.aaravHealth = 150;
-        this.ruhhanHealth = 1200; // 8x Aarav's health
+        this.ruhhanHealth = 2000; // Increased boss health
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
         this.firstStart = true; // Track if it's the first time starting
     }
     preload() {
-        // Load background music
-        this.load.audio('bgMusic', 'Bossfight - Milky Ways.mp3?5Zus');
+        // Load background music with correct URL
+        this.load.audio('bgMusic', 'https://play.rosebud.ai/assets/Bossfight - Milky Ways.mp3?5Zus');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -438,8 +438,8 @@ class BossGame extends Phaser.Scene {
         } else {
             this.ruhhanHealth -= 10;
         }
-        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1.3);
-        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.455);
+        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 0.8); // Takes more hits to charge
+        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.25); // Takes more hits to charge
         if (this.ruhhanHealth <= 0) {
             this.gameOver();
         }
@@ -704,7 +704,7 @@ class BossGame extends Phaser.Scene {
         restartButton.on('pointerdown', () => {
             // Reset all game variables
             this.aaravHealth = 150;
-            this.ruhhanHealth = 1200;
+            this.ruhhanHealth = 2000;
             this.specialAttackCharge = 0;
             this.hyperChargeAmount = 0;
             this.hyperChargeActive = false;
