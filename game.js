@@ -27,7 +27,9 @@ class StartScreen extends Phaser.Scene {
 }
 class BossGame extends Phaser.Scene {
     constructor() {
-        super();
+        super({
+            key: 'BossGame'
+        });
         // Initialize game variables
         this.aarav = null;
         this.jumpCount = 0;
@@ -52,8 +54,10 @@ class BossGame extends Phaser.Scene {
         graphics.destroy();
     }
     create() {
-        // Set background color
+        // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
+        this.cameras.main.setBounds(0, 0, 1200, 800);
+        this.physics.world.setBounds(0, 0, 1200, 800);
 
         // Create static group for platforms
         this.platforms = this.physics.add.staticGroup();
