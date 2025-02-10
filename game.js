@@ -68,24 +68,24 @@ class BossGame extends Phaser.Scene {
         this.platforms = this.physics.add.staticGroup();
 
         // Create main platform/ground
-        this.platforms.create(600, 780, 'platform')
-            .setScale(6, 0.5) // Wider ground platform
+        this.platforms.create(800, 980, 'platform')
+            .setScale(8, 0.5) // Wider ground platform
             .refreshBody();
         // Create multiple platforms at different heights
-        this.platforms.create(200, 600, 'platform')
-            .setScale(0.8, 0.2)
+        this.platforms.create(300, 800, 'platform')
+            .setScale(1.2, 0.3)
             .refreshBody();
-        this.platforms.create(600, 500, 'platform')
-            .setScale(1, 0.2)
+        this.platforms.create(800, 700, 'platform')
+            .setScale(1.5, 0.3)
             .refreshBody();
-        this.platforms.create(1000, 600, 'platform')
-            .setScale(0.8, 0.2)
+        this.platforms.create(1300, 800, 'platform')
+            .setScale(1.2, 0.3)
             .refreshBody();
-        this.platforms.create(400, 350, 'platform')
-            .setScale(0.8, 0.2)
+        this.platforms.create(500, 550, 'platform')
+            .setScale(1.2, 0.3)
             .refreshBody();
-        this.platforms.create(800, 300, 'platform')
-            .setScale(0.8, 0.2)
+        this.platforms.create(1100, 500, 'platform')
+            .setScale(1.2, 0.3)
             .refreshBody();
 
         // Create Aarav (hero)
@@ -118,13 +118,12 @@ class BossGame extends Phaser.Scene {
 
         // Create health bars with backgrounds
         // Aarav's health bar background
-        this.add.rectangle(100, 50, 200, 20, 0x333333).setOrigin(0, 0);
-        this.aaravHealthBar = this.add.rectangle(100, 50, 200, 20, 0x00ff00);
+        this.add.rectangle(150, 70, 300, 30, 0x333333).setOrigin(0, 0);
+        this.aaravHealthBar = this.add.rectangle(150, 70, 300, 30, 0x00ff00);
         this.aaravHealthBar.setOrigin(0, 0);
-
         // Ruhaan's health bar background
-        this.add.rectangle(500, 50, 200, 20, 0x333333).setOrigin(0, 0);
-        this.ruhhanHealthBar = this.add.rectangle(500, 50, 200, 20, 0xff0000);
+        this.add.rectangle(750, 70, 300, 30, 0x333333).setOrigin(0, 0);
+        this.ruhhanHealthBar = this.add.rectangle(750, 70, 300, 30, 0xff0000);
         this.ruhhanHealthBar.setOrigin(0, 0);
 
         // Setup keyboard controls
@@ -133,14 +132,14 @@ class BossGame extends Phaser.Scene {
             this.firstStart = false;
         }
         // Add special attack charge bar
-        this.chargeBar = this.add.rectangle(100, 80, 200, 10, 0x333333);
+        this.chargeBar = this.add.rectangle(150, 110, 300, 15, 0x333333);
         this.chargeBar.setOrigin(0, 0);
-        this.chargeBarFill = this.add.rectangle(100, 80, 0, 10, 0xffff00);
+        this.chargeBarFill = this.add.rectangle(150, 110, 0, 15, 0xffff00);
         this.chargeBarFill.setOrigin(0, 0);
         // Add hypercharge bar
-        this.hyperChargeBar = this.add.rectangle(100, 100, 200, 10, 0x333333);
+        this.hyperChargeBar = this.add.rectangle(150, 135, 300, 15, 0x333333);
         this.hyperChargeBar.setOrigin(0, 0);
-        this.hyperChargeFill = this.add.rectangle(100, 100, 0, 10, 0x800080);
+        this.hyperChargeFill = this.add.rectangle(150, 135, 0, 15, 0x800080);
         this.hyperChargeFill.setOrigin(0, 0);
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -463,7 +462,7 @@ class BossGame extends Phaser.Scene {
                 const damage = this.hyperChargeActive ? 150 : 100; // 50% more damage when hypercharged
                 this.ruhhanHealth -= damage;
                 // Visual feedback for big damage
-                const damageText = this.add.text(this.ruhaan.x, this.ruhaan.y - 50, '-100!', {
+                const damageText = this.add.text(this.ruhaan.x, this.ruhaan.y - 50, `-${damage}!`, {
                     fontSize: '32px',
                     fill: '#ff0000'
                 }).setOrigin(0.5);
@@ -514,6 +513,7 @@ class BossGame extends Phaser.Scene {
     }
     activateHyperCharge() {
         this.hyperChargeActive = true;
+        this.hyperChargeAmount = 0;
         // Start depleting the hypercharge bar
         this.hyperChargeTween = this.tweens.add({
             targets: this.hyperChargeFill,
