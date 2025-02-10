@@ -3,6 +3,7 @@ class BossGame extends Phaser.Scene {
         super();
         // Initialize game variables
         this.aarav = null;
+        this.jumpCount = 0;
         this.ruhaan = null;
         this.platforms = null;
         this.bullets = null;
@@ -29,16 +30,24 @@ class BossGame extends Phaser.Scene {
         this.platforms = this.physics.add.staticGroup();
 
         // Create main platform/ground
-        this.platforms.create(400, 580, 'platform')
-            .setScale(2, 0.5)
+        this.platforms.create(600, 780, 'platform')
+            .setScale(6, 0.5) // Wider ground platform
             .refreshBody();
-
-        // Create additional platforms
-        this.platforms.create(600, 400, 'platform')
-            .setScale(0.5, 0.2)
+        // Create multiple platforms at different heights
+        this.platforms.create(200, 600, 'platform')
+            .setScale(0.8, 0.2)
             .refreshBody();
-        this.platforms.create(200, 300, 'platform')
-            .setScale(0.5, 0.2)
+        this.platforms.create(600, 500, 'platform')
+            .setScale(1, 0.2)
+            .refreshBody();
+        this.platforms.create(1000, 600, 'platform')
+            .setScale(0.8, 0.2)
+            .refreshBody();
+        this.platforms.create(400, 350, 'platform')
+            .setScale(0.8, 0.2)
+            .refreshBody();
+        this.platforms.create(800, 300, 'platform')
+            .setScale(0.8, 0.2)
             .refreshBody();
 
         // Create Aarav (hero)
@@ -100,8 +109,31 @@ class BossGame extends Phaser.Scene {
         }
         // Player jump with better ground detection
         // Player jump with better ground detection
-        if (this.cursors.up.isDown && this.aarav.body.blocked.down) {
-            this.aarav.body.setVelocityY(-500);
+        // Reset jump count when touching ground
+        if (this.aarav.body.blocked.down) {
+            this.jumpCount = 0;
+        }
+        // Jump mechanics (double jump)
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && this.jumpCount < 2) {
+            this.aarav.body.setVelocityY(-750);
+            this.jumpCount++;
+
+            // Add jump effect
+            for (let i = 0; i < 5; i++) {
+                const particle = this.add.circle(
+                    this.aarav.x + Phaser.Math.Between(-10, 10),
+                    this.aarav.y + 40,
+                    5,
+                    0x88ff88
+                );
+                this.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    y: particle.y + Phaser.Math.Between(20, 40),
+                    duration: 200,
+                    onComplete: () => particle.destroy()
+                });
+            }
         }
 
         // Player shoot
@@ -147,16 +179,22 @@ class BossGame extends Phaser.Scene {
         );
         // Smart movement
         const direction = this.aarav.x - this.ruhaan.x;
-        // Strategic movement
-        if (distanceToPlayer > 400) {
-            // Slowly approach if too far
-            this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
-        } else if (distanceToPlayer < 250) {
-            // Quickly back away if too close
-            this.ruhaan.body.setVelocityX(direction < 0 ? 300 : -300);
-        } else {
-            // Maintain optimal attack distance
-            this.ruhaan.body.setVelocityX(direction < 0 ? -100 : 100);
+        // Strategic movement with platform utilization
+        if (this.ruhaan.body.touching.down) {
+            if (distanceToPlayer > 500) {
+                // Move to closest platform above player
+                this.ruhaan.body.setVelocityX(direction < 0 ? -250 : 250);
+                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-700);
+            } else if (distanceToPlayer < 200) {
+                // Back away and possibly prepare for ground pound
+                this.ruhaan.body.setVelocityX(direction < 0 ? 300 : -300);
+                if (this.aarav.y > this.ruhaan.y && Math.random() < 0.1) {
+                    this.bossGroundPound();
+                }
+            } else {
+                // Strategic positioning
+                this.ruhaan.body.setVelocityX(direction < 0 ? -200 : 200);
+            }
         }
         // Occasionally jump to reposition
         if (Math.random() < 0.01 && this.ruhaan.body.touching.down) {
@@ -234,6 +272,42 @@ class BossGame extends Phaser.Scene {
             ball.body.setAllowGravity(false);
         }
     }
+    bossGroundPound() {
+        // Initial jump for ground pound
+        this.ruhaan.body.setVelocityY(-800);
+
+        // After reaching apex, slam down
+        this.time.delayedCall(700, () => {
+            this.ruhaan.body.setVelocityY(1200);
+
+            // When hitting ground, create shockwave
+            this.physics.add.collider(this.ruhaan, this.platforms, () => {
+                if (this.ruhaan.body.velocity.y > 0) {
+                    // Create shockwave effect
+                    for (let i = -2; i <= 2; i++) {
+                        const shockwave = this.add.circle(
+                            this.ruhaan.x + (i * 100),
+                            this.ruhaan.y + 40,
+                            20,
+                            0xff0000
+                        );
+                        this.bossBalls.add(shockwave);
+                        shockwave.body.setVelocityY(-300);
+                        shockwave.body.setVelocityX(i * 200);
+                        shockwave.body.setAllowGravity(false);
+
+                        // Fade out and destroy
+                        this.tweens.add({
+                            targets: shockwave,
+                            alpha: 0,
+                            duration: 1000,
+                            onComplete: () => shockwave.destroy()
+                        });
+                    }
+                }
+            }, null, this);
+        });
+    }
     hitBoss(ruhaan, bullet) {
         bullet.destroy();
         this.ruhhanHealth -= 10;
@@ -245,7 +319,7 @@ class BossGame extends Phaser.Scene {
 
     hitPlayer(aarav, ball) {
         ball.destroy();
-        this.aaravHealth -= 35;
+        this.aaravHealth -= 15; // Reduced damage from 35 to 15
         if (this.aaravHealth <= 0) {
             this.gameOver();
         }
@@ -255,25 +329,81 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
     }
     specialAttack() {
-        // Create a powerful beam attack
-        const beam = this.add.rectangle(this.aarav.x, this.aarav.y, 500, 40, 0x00ffff);
-        this.bullets.add(beam);
-        beam.body.setAllowGravity(false);
-        beam.body.setVelocityX(1000);
+        // Charging effect
+        const chargeTime = 1000; // 1 second charge
+        const beamLength = 500;
+        const beamWidth = 40;
 
-        // Special attack does more damage
-        this.physics.add.overlap(this.ruhaan, beam, (ruhaan, beam) => {
-            beam.destroy();
-            this.ruhhanHealth -= 100;
-            if (this.ruhhanHealth <= 0) {
-                this.gameOver();
+        // Create charging effect
+        const chargeCircle = this.add.circle(this.aarav.x, this.aarav.y, 30, 0x00ffff, 0.5);
+        this.tweens.add({
+            targets: chargeCircle,
+            scale: 2,
+            alpha: 0.8,
+            duration: chargeTime,
+            yoyo: true,
+            repeat: 0,
+            onComplete: () => chargeCircle.destroy()
+        });
+        // After charge time, fire the beam
+        this.time.delayedCall(chargeTime, () => {
+
+            // Create main beam
+            const beam = this.add.rectangle(this.aarav.x, this.aarav.y, beamLength, beamWidth, 0x00ffff);
+            this.bullets.add(beam);
+            beam.body.setAllowGravity(false);
+            beam.body.setVelocityX(1000);
+            // Add particle effects
+            for (let i = 0; i < 20; i++) {
+                const particle = this.add.circle(
+                    this.aarav.x + Phaser.Math.Between(0, beamLength / 2),
+                    this.aarav.y + Phaser.Math.Between(-beamWidth / 2, beamWidth / 2),
+                    Phaser.Math.Between(5, 10),
+                    0x00ffff
+                );
+
+                this.tweens.add({
+                    targets: particle,
+                    x: particle.x + Phaser.Math.Between(100, 200),
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 500,
+                    onComplete: () => particle.destroy()
+                });
             }
-        }, null, this);
-        // Destroy beam after 1 second
-        this.time.delayedCall(1000, () => {
-            if (beam.active) {
+            // Add energy gathering effect before beam
+            for (let i = 0; i < 10; i++) {
+                const chargeParticle = this.add.circle(
+                    this.aarav.x + Phaser.Math.Between(-50, 50),
+                    this.aarav.y + Phaser.Math.Between(-50, 50),
+                    8,
+                    0x00ffff
+                );
+
+                this.tweens.add({
+                    targets: chargeParticle,
+                    x: this.aarav.x,
+                    y: this.aarav.y,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => chargeParticle.destroy()
+                });
+            }
+
+            // Special attack does more damage
+            this.physics.add.overlap(this.ruhaan, beam, (ruhaan, beam) => {
                 beam.destroy();
-            }
+                this.ruhhanHealth -= 50; // Regular bullets do 10, this does 50 (5x damage)
+                if (this.ruhhanHealth <= 0) {
+                    this.gameOver();
+                }
+            }, null, this);
+            // Destroy beam after 1 second
+            this.time.delayedCall(1000, () => {
+                if (beam.active) {
+                    beam.destroy();
+                }
+            });
         });
     }
     healingSuper() {
@@ -312,8 +442,8 @@ class BossGame extends Phaser.Scene {
 // Game configuration
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     physics: {
         default: 'arcade',
         arcade: {
