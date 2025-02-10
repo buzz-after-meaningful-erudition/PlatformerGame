@@ -446,7 +446,7 @@ class BossGame extends Phaser.Scene {
         const beamWidth = 40;
 
         // Create charging effect
-        const chargeCircle = this.add.circle(this.aarav.x, this.aarav.y, 30, 0x00ffff, 0.5);
+        const chargeCircle = this.add.circle(this.aarav.x, this.aarav.y, 30, this.hyperChargeActive ? 0x800080 : 0x00ffff, 0.5);
         this.tweens.add({
             targets: chargeCircle,
             scale: 2,
@@ -460,7 +460,7 @@ class BossGame extends Phaser.Scene {
         this.time.delayedCall(chargeTime, () => {
 
             // Create main beam
-            const beam = this.add.rectangle(this.aarav.x, this.aarav.y, beamLength, beamWidth, 0x00ffff);
+            const beam = this.add.rectangle(this.aarav.x, this.aarav.y, beamLength, beamWidth, this.hyperChargeActive ? 0x800080 : 0x00ffff);
             this.bullets.add(beam);
             beam.body.setAllowGravity(false);
             beam.body.setVelocityX(1000);
@@ -470,7 +470,7 @@ class BossGame extends Phaser.Scene {
                     this.aarav.x + Phaser.Math.Between(0, beamLength / 2),
                     this.aarav.y + Phaser.Math.Between(-beamWidth / 2, beamWidth / 2),
                     Phaser.Math.Between(5, 10),
-                    0x00ffff
+                    this.hyperChargeActive ? 0x800080 : 0x00ffff
                 );
 
                 this.tweens.add({
@@ -488,7 +488,7 @@ class BossGame extends Phaser.Scene {
                     this.aarav.x + Phaser.Math.Between(-50, 50),
                     this.aarav.y + Phaser.Math.Between(-50, 50),
                     8,
-                    0x00ffff
+                    this.hyperChargeActive ? 0x800080 : 0x00ffff
                 );
 
                 this.tweens.add({
@@ -543,7 +543,7 @@ class BossGame extends Phaser.Scene {
                 this.aarav.y + Phaser.Math.Between(-30, 30),
                 '+', {
                     fontSize: '32px',
-                    fill: '#00ff00'
+                    fill: this.hyperChargeActive ? '#800080' : '#00ff00'
                 }
             );
             this.tweens.add({
@@ -567,6 +567,32 @@ class BossGame extends Phaser.Scene {
             alpha: 0,
             duration: 500,
             onComplete: () => flash.destroy()
+        });
+        // Create continuous purple smoke effect
+        const smokeEmitter = this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (this.hyperChargeActive) {
+                    for (let i = 0; i < 2; i++) {
+                        const smoke = this.add.circle(
+                            this.aarav.x + Phaser.Math.Between(-20, 20),
+                            this.aarav.y + Phaser.Math.Between(-20, 20),
+                            Phaser.Math.Between(5, 10),
+                            0x800080,
+                            0.6
+                        );
+                        this.tweens.add({
+                            targets: smoke,
+                            alpha: 0,
+                            scale: 2,
+                            y: smoke.y - Phaser.Math.Between(50, 100),
+                            duration: 1000,
+                            onComplete: () => smoke.destroy()
+                        });
+                    }
+                }
+            },
+            repeat: 49 // 5 seconds worth of smoke (50 * 100ms)
         });
         // Purple aura around player
         const aura = this.add.circle(this.aarav.x, this.aarav.y, 40, 0x800080, 0.3);
@@ -605,12 +631,12 @@ class BossGame extends Phaser.Scene {
             }).setOrigin(0.5);
             controlsBox.add(controlText);
         });
-        // Fade out after 5 seconds
+        // Fade out after 7 seconds
         this.tweens.add({
             targets: controlsBox,
             alpha: 0,
             duration: 1000,
-            delay: 5000,
+            delay: 7000,
             onComplete: () => controlsBox.destroy()
         });
     }
