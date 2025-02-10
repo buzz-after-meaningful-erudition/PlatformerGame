@@ -37,12 +37,13 @@ class BossGame extends Phaser.Scene {
         this.hyperChargeAmount = 0;
         this.isHyperCharged = false;
         this.hyperChargeActive = false;
+        this.hyperChargeDuration = 5000; // 5 seconds in milliseconds
         this.ruhaan = null;
         this.platforms = null;
         this.bullets = null;
         this.bossBalls = null;
         this.aaravHealth = 100;
-        this.ruhhanHealth = 400; // 4x Aarav's health
+        this.ruhhanHealth = 500; // 5x Aarav's health
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
@@ -59,9 +60,9 @@ class BossGame extends Phaser.Scene {
     create() {
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
-        this.cameras.main.setBounds(0, 0, 1200, 800);
-        this.add.rectangle(600, 400, 1200, 800, 0x4488AA); // Add visible background
-        this.physics.world.setBounds(0, 0, 1200, 800);
+        this.cameras.main.setBounds(0, 0, 1600, 1000);
+        this.add.rectangle(800, 500, 1600, 1000, 0x4488AA); // Add visible background
+        this.physics.world.setBounds(0, 0, 1600, 1000);
 
         // Create static group for platforms
         this.platforms = this.physics.add.staticGroup();
@@ -115,9 +116,14 @@ class BossGame extends Phaser.Scene {
         this.physics.add.overlap(this.ruhaan, this.bullets, this.hitBoss, null, this);
         this.physics.add.overlap(this.aarav, this.bossBalls, this.hitPlayer, null, this);
 
-        // Create health bars
+        // Create health bars with backgrounds
+        // Aarav's health bar background
+        this.add.rectangle(100, 50, 200, 20, 0x333333).setOrigin(0, 0);
         this.aaravHealthBar = this.add.rectangle(100, 50, 200, 20, 0x00ff00);
         this.aaravHealthBar.setOrigin(0, 0);
+
+        // Ruhaan's health bar background
+        this.add.rectangle(500, 50, 200, 20, 0x333333).setOrigin(0, 0);
         this.ruhhanHealthBar = this.add.rectangle(500, 50, 200, 20, 0xff0000);
         this.ruhhanHealthBar.setOrigin(0, 0);
 
@@ -508,7 +514,13 @@ class BossGame extends Phaser.Scene {
     }
     activateHyperCharge() {
         this.hyperChargeActive = true;
-        this.hyperChargeAmount = 0;
+        // Start depleting the hypercharge bar
+        this.hyperChargeTween = this.tweens.add({
+            targets: this.hyperChargeFill,
+            width: 0,
+            duration: this.hyperChargeDuration,
+            ease: 'Linear'
+        });
         // Visual effect for activation
         const flash = this.add.rectangle(0, 0, 1200, 800, 0x800080, 0.3);
         this.tweens.add({
@@ -608,8 +620,8 @@ class BossGame extends Phaser.Scene {
 // Game configuration
 const config = {
     type: Phaser.AUTO,
-    width: 1200,
-    height: 800,
+    width: 1600,
+    height: 1000,
     backgroundColor: '#4488AA',
     physics: {
         default: 'arcade',
