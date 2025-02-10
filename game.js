@@ -48,7 +48,7 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         this.aaravHealth = 150;
-        this.ruhhanHealth = 2000; // Increased boss health
+        this.ruhhanHealth = 1000; // Adjusted boss health
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
@@ -306,7 +306,7 @@ class BossGame extends Phaser.Scene {
 
         // Update health bars and charge bars
         this.aaravHealthBar.width = (this.aaravHealth / 150) * 400;
-        this.ruhhanHealthBar.width = (this.ruhhanHealth / 1200) * 400;
+        this.ruhhanHealthBar.width = (this.ruhhanHealth / 1000) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
         // Handle hypercharge activation
@@ -499,7 +499,7 @@ class BossGame extends Phaser.Scene {
     bossBurritoRain() {
         // Create 5 burritos that fall from above
         for (let i = 0; i < 5; i++) {
-            const x = this.aarav.x + Phaser.Math.Between(-200, 200);
+            const x = this.aarav.x + Phaser.Math.Between(-400, 400);
             const burrito = this.physics.add.sprite(x, 0, 'burrito');
             burrito.setScale(0.1); // Adjust scale to make it an appropriate size
             // Set the hitbox to match the scaled sprite size
@@ -802,7 +802,7 @@ class BossGame extends Phaser.Scene {
         restartButton.on('pointerdown', () => {
             // Reset all game variables
             this.aaravHealth = 150;
-            this.ruhhanHealth = 2000;
+            this.ruhhanHealth = 1000;
             this.specialAttackCharge = 0;
             this.hyperChargeAmount = 0;
             this.hyperChargeActive = false;
