@@ -56,9 +56,9 @@ class BossGame extends Phaser.Scene {
     }
     preload() {
         // Load background music with correct URL
-        this.load.audio('bgMusic', 'https://play.rosebud.ai/assets/Bossfight - Milky Ways.mp3?5Zus');
+        this.load.audio('bgMusic', 'bgm.mp3');
         // Load burrito sprite
-        this.load.image('burrito', 'https://play.rosebud.ai/assets/z2hyet3gihd71.jpg?z1yj');
+        this.load.image('burrito', 'burrit.jpg');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
