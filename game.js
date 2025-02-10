@@ -37,6 +37,8 @@ class BossGame extends Phaser.Scene {
         this.aarav = null;
         this.jumpCount = 0;
         this.facingRight = true; // Track which direction Aarav is facing
+        this.isPoisoned = false;
+        this.poisonDuration = 0;
         this.hyperChargeAmount = 0;
         this.isHyperCharged = false;
         this.hyperChargeActive = false;
@@ -55,6 +57,8 @@ class BossGame extends Phaser.Scene {
     preload() {
         // Load background music with correct URL
         this.load.audio('bgMusic', 'https://play.rosebud.ai/assets/Bossfight - Milky Ways.mp3?5Zus');
+        // Load burrito sprite
+        this.load.image('burrito', 'https://play.rosebud.ai/assets/z2hyet3gihd71.jpg?z1yj');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -66,7 +70,7 @@ class BossGame extends Phaser.Scene {
         // Start background music
         this.bgMusic = this.sound.add('bgMusic', {
             loop: true,
-            volume: 0.7
+            volume: 0.4
         });
         this.bgMusic.play();
         // Set background color and camera bounds
@@ -204,6 +208,36 @@ class BossGame extends Phaser.Scene {
     }
 
     update() {
+        // Handle poison damage
+        if (this.isPoisoned && this.poisonDuration > 0) {
+            this.poisonDuration -= 16; // Approximately one frame at 60fps
+
+            if (this.poisonDuration % 1000 < 16) { // Every second
+                this.aaravHealth -= 2; // 2 damage per second from poison
+
+                // Poison effect visualization
+                const poisonEffect = this.add.text(
+                    this.aarav.x, this.aarav.y - 40,
+                    '-2 poison', {
+                        fontSize: '16px',
+                        fill: '#00ff00'
+                    }
+                ).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: poisonEffect,
+                    y: poisonEffect.y - 30,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => poisonEffect.destroy()
+                });
+            }
+
+            if (this.poisonDuration <= 0) {
+                this.isPoisoned = false;
+            }
+        }
+
         // Player movement and jump
         const baseSpeed = this.aarav.body.touching.down ? 300 : 250;
         const moveSpeed = this.hyperChargeActive ? baseSpeed * 1.5 : baseSpeed;
@@ -336,8 +370,15 @@ class BossGame extends Phaser.Scene {
                 } else {
                     this.bossBallAttack();
                 }
+            } else if (distanceToPlayer > 600) {
+                // Very long range: pull attack or burrito rain
+                if (attackChoice < 0.5) {
+                    this.bossPullAttack();
+                } else {
+                    this.bossBurritoRain();
+                }
             } else {
-                // Long range: prefer ball attack or multi-ball
+                // Medium range: prefer ball attack or multi-ball
                 if (attackChoice < 0.4) {
                     this.bossBallAttack();
                 } else if (attackChoice < 0.8) {
@@ -431,6 +472,55 @@ class BossGame extends Phaser.Scene {
             }, null, this);
         });
     }
+    bossPullAttack() {
+        // Visual effect for the pull
+        const pullEffect = this.add.rectangle(this.aarav.x, this.aarav.y, 50, 10, 0xff0000);
+
+        // Calculate pull direction
+        const angle = Phaser.Math.Angle.Between(
+            this.aarav.x, this.aarav.y,
+            this.ruhaan.x, this.ruhaan.y
+        );
+
+        // Apply pull force to player
+        const pullForce = 400;
+        this.aarav.body.setVelocityX(Math.cos(angle) * pullForce);
+
+        // Visual feedback
+        this.tweens.add({
+            targets: pullEffect,
+            scaleX: 3,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => pullEffect.destroy()
+        });
+    }
+
+    bossBurritoRain() {
+        // Create 5 burritos that fall from above
+        for (let i = 0; i < 5; i++) {
+            const x = this.aarav.x + Phaser.Math.Between(-200, 200);
+            const burrito = this.physics.add.sprite(x, 0, 'burrito');
+            burrito.setScale(0.1); // Adjust scale to make it an appropriate size
+            // Set the hitbox to match the scaled sprite size
+            burrito.body.setSize(burrito.width * 0.8, burrito.height * 0.8);
+            burrito.body.setOffset(burrito.width * 0.1, burrito.height * 0.1);
+            this.bossBalls.add(burrito);
+            burrito.isBurrito = true;
+
+            // Add falling physics
+            burrito.body.setVelocityY(300);
+            burrito.body.setVelocityX(Phaser.Math.Between(-50, 50));
+            burrito.body.setAllowGravity(true);
+
+            // Destroy after 3 seconds if not hit
+            this.time.delayedCall(3000, () => {
+                if (burrito.active) {
+                    burrito.destroy();
+                }
+            });
+        }
+    }
     hitBoss(ruhaan, bullet) {
         bullet.destroy();
         if (bullet.isSpecialBeam) {
@@ -445,10 +535,18 @@ class BossGame extends Phaser.Scene {
         }
     }
 
-    hitPlayer(aarav, ball) {
-        ball.destroy();
-        const damage = this.hyperChargeActive ? 10 : 15; // 35% less damage when hypercharged
+    hitPlayer(aarav, projectile) {
+        let damage = this.hyperChargeActive ? 10 : 15; // Base damage
+
+        if (projectile.isBurrito) {
+            damage = 5; // Burrito damage
+            this.isPoisoned = true;
+            this.poisonDuration = 5000; // 5 seconds of poison
+        }
+
         this.aaravHealth -= damage;
+        projectile.destroy();
+
         if (this.aaravHealth <= 0) {
             this.gameOver();
         }
