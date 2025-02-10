@@ -84,6 +84,7 @@ class BossGame extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     }
 
     update() {
@@ -108,10 +109,15 @@ class BossGame extends Phaser.Scene {
             this.shoot();
             this.lastShot = this.time.now;
         }
-        // Special Attack
-        if (this.qKey.isDown && this.specialAttackCharge >= 10) {
-            this.specialAttack();
-            this.specialAttackCharge = 0;
+        // Special Attacks
+        if (this.specialAttackCharge >= 10) {
+            if (this.qKey.isDown) {
+                this.specialAttack();
+                this.specialAttackCharge = 0;
+            } else if (this.eKey.isDown) {
+                this.healingSuper();
+                this.specialAttackCharge = 0;
+            }
         }
         // Boss AI and attacks
         this.updateBoss();
@@ -141,16 +147,20 @@ class BossGame extends Phaser.Scene {
         );
         // Smart movement
         const direction = this.aarav.x - this.ruhaan.x;
-        // More aggressive movement
-        if (distanceToPlayer > 250) {
-            // Chase player faster when far away
-            this.ruhaan.body.setVelocityX(direction < 0 ? -200 : 200);
-        } else if (distanceToPlayer < 150) {
-            // Back away faster when too close
-            this.ruhaan.body.setVelocityX(direction < 0 ? 250 : -250);
-        } else {
-            // Maintain mid-range distance
+        // Strategic movement
+        if (distanceToPlayer > 400) {
+            // Slowly approach if too far
             this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
+        } else if (distanceToPlayer < 250) {
+            // Quickly back away if too close
+            this.ruhaan.body.setVelocityX(direction < 0 ? 300 : -300);
+        } else {
+            // Maintain optimal attack distance
+            this.ruhaan.body.setVelocityX(direction < 0 ? -100 : 100);
+        }
+        // Occasionally jump to reposition
+        if (Math.random() < 0.01 && this.ruhaan.body.touching.down) {
+            this.ruhaan.body.setVelocityY(-600);
         }
         // Attack pattern selection
         if (this.time.now > this.lastBossAttack + 2000) {
@@ -235,7 +245,7 @@ class BossGame extends Phaser.Scene {
 
     hitPlayer(aarav, ball) {
         ball.destroy();
-        this.aaravHealth -= 25;
+        this.aaravHealth -= 35;
         if (this.aaravHealth <= 0) {
             this.gameOver();
         }
@@ -266,6 +276,29 @@ class BossGame extends Phaser.Scene {
             }
         });
     }
+    healingSuper() {
+        // Heal for 50 HP, not exceeding max health
+        this.aaravHealth = Math.min(100, this.aaravHealth + 50);
+        // Create healing animation (plus signs)
+        for (let i = 0; i < 5; i++) {
+            const plusSign = this.add.text(
+                this.aarav.x + Phaser.Math.Between(-20, 20),
+                this.aarav.y + Phaser.Math.Between(-30, 30),
+                '+', {
+                    fontSize: '32px',
+                    fill: '#00ff00'
+                }
+            );
+            this.tweens.add({
+                targets: plusSign,
+                y: plusSign.y - 100,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power1',
+                onComplete: () => plusSign.destroy()
+            });
+        }
+    }
     gameOver() {
         this.scene.pause();
         const winner = this.aaravHealth <= 0 ? 'Ruhaan' : 'Aarav';
@@ -285,7 +318,7 @@ const config = {
         default: 'arcade',
         arcade: {
             gravity: {
-                y: 300
+                y: 1000
             },
             debug: false
         }
