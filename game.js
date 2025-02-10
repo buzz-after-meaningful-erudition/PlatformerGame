@@ -26,6 +26,12 @@ class StartScreen extends Phaser.Scene {
                 firstStart: true
             });
         });
+        create() {
+        // Title
+        this.add.text(800, 600, 'arrow keys for movement, space to shoot, q for damage super, e for heal super, r for hyper', {
+            fontSize: '84px',
+            fill: '#fff'
+        }).setOrigin(0.5);
     }
 }
 class BossGame extends Phaser.Scene {
