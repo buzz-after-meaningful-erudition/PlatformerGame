@@ -57,6 +57,7 @@ class BossGame extends Phaser.Scene {
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
         this.cameras.main.setBounds(0, 0, 1200, 800);
+        this.add.rectangle(600, 400, 1200, 800, 0x4488AA); // Add visible background
         this.physics.world.setBounds(0, 0, 1200, 800);
 
         // Create static group for platforms
@@ -535,7 +536,7 @@ class BossGame extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         restartButton.on('pointerdown', () => {
-            this.scene.restart();
+            this.scene.start('BossGame');
         });
         menuButton.on('pointerdown', () => {
             this.scene.start('StartScreen');
@@ -548,6 +549,7 @@ const config = {
     type: Phaser.AUTO,
     width: 1200,
     height: 800,
+    backgroundColor: '#4488AA',
     physics: {
         default: 'arcade',
         arcade: {
