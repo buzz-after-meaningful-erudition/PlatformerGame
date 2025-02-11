@@ -370,7 +370,7 @@ class BossGame extends Phaser.Scene {
                 } else {
                     this.bossBallAttack();
                 }
-            } else if (distanceToPlayer > 600) {
+            } else if (distanceToPlayer > 500) {
                 // Very long range: pull attack or burrito rain
                 if (attackChoice < 0.5) {
                     this.bossPullAttack();
