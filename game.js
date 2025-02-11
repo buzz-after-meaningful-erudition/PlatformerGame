@@ -60,9 +60,9 @@ class BossGame extends Phaser.Scene {
         // Load burrito sprite
         this.load.image('burrito', 'burrit.jpg');
         //aarav sprite
-        this.load.image('aarav', 'aarav.jpg')
+//        this.load.image('aarav', 'aarav.jpg')
         //ruhann sprite
-        this.load.image('ruhaan', 'ruhaan.gif')
+//        this.load.image('ruhaan', 'ruhaan.gif')
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -108,23 +108,23 @@ class BossGame extends Phaser.Scene {
             .refreshBody();
 
         // Create Aarav (hero) - replace the rectangle with sprite
-        this.aarav = this.add.sprite(1, 4.5, 'aarav');
+        this.aarav = this.add.rectangle(100, 450, 50, 80, 0x00ff00);
         this.aarav.setScale(0.25); // Adjust this value to make the sprite an appropriate size
         this.physics.add.existing(this.aarav);
         this.aarav.body.setBounce(0);
         this.aarav.body.setCollideWorldBounds(true);
         this.aarav.body.setGravityY(600);
         // Set the hitbox size if needed
-        this.aarav.body.setSize(50, 80); // Match the original rectangle dimensions
+//        this.aarav.body.setSize(50, 80); // Match the original rectangle dimensions
 
         // Create Ruhaan (boss)
-        this.ruhaan = this.add.sprite(100, 450, 'ruhaan');
+        this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
         this.ruhaan.setScale(10);
         this.physics.add.existing(this.ruhaan);
         this.ruhaan.body.setBounce(0.2);
         this.ruhaan.body.setCollideWorldBounds(true);
         this.ruhaan.body.setGravityY(300);
-        this.ruhaan.body.setSize(100, 450);
+//        this.ruhaan.body.setSize(100, 450);
 
         // Create groups for projectiles
         this.bullets = this.physics.add.group();
