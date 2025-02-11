@@ -109,7 +109,7 @@ class BossGame extends Phaser.Scene {
 
         // Create Aarav (hero) - replace the rectangle with sprite
         this.aarav = this.add.rectangle(100, 450, 50, 80, 0x00ff00);
-        this.aarav.setScale(0.25); // Adjust this value to make the sprite an appropriate size
+//        this.aarav.setScale(0.25); // Adjust this value to make the sprite an appropriate size
         this.physics.add.existing(this.aarav);
         this.aarav.body.setBounce(0);
         this.aarav.body.setCollideWorldBounds(true);
@@ -119,7 +119,7 @@ class BossGame extends Phaser.Scene {
 
         // Create Ruhaan (boss)
         this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
-        this.ruhaan.setScale(10);
+//        this.ruhaan.setScale(10);
         this.physics.add.existing(this.ruhaan);
         this.ruhaan.body.setBounce(0.2);
         this.ruhaan.body.setCollideWorldBounds(true);
