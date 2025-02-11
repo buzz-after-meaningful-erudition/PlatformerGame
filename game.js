@@ -62,7 +62,7 @@ class BossGame extends Phaser.Scene {
         //aarav sprite
         this.load.image('aarav', 'aarav.jpg')
         //ruhann sprite
-        this.load.image('ruhann', 'ruhann.jpg')
+        this.load.image('ruhaan', 'ruhaan.jpg')
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -118,12 +118,13 @@ class BossGame extends Phaser.Scene {
         this.aarav.body.setSize(50, 80); // Match the original rectangle dimensions
 
         // Create Ruhaan (boss)
-        this.ruhaan = this.add.sprite(100, 450, 'ruhann');
+        this.ruhaan = this.add.sprite(100, 450, 'ruhaan');
+        this.ruhaan.setScale(0.25);
         this.physics.add.existing(this.ruhaan);
         this.ruhaan.body.setBounce(0.2);
         this.ruhaan.body.setCollideWorldBounds(true);
         this.ruhaan.body.setGravityY(300);
-        this.ruhann.body.setSize(50, 80);
+        this.ruhaan.body.setSize(50, 80);
 
         // Create groups for projectiles
         this.bullets = this.physics.add.group();
