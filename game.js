@@ -59,6 +59,10 @@ class BossGame extends Phaser.Scene {
         this.load.audio('bgMusic', 'bgm.mp3');
         // Load burrito sprite
         this.load.image('burrito', 'burrit.jpg');
+        //aarav sprite
+        this.load.image('aarav', 'aarav.jpg')
+        //ruhann sprite
+        this.load.image('ruhann', 'ruhann.jpg')
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -103,19 +107,23 @@ class BossGame extends Phaser.Scene {
             .setScale(1.2, 0.3)
             .refreshBody();
 
-        // Create Aarav (hero)
-        this.aarav = this.add.rectangle(100, 450, 50, 80, 0x00ff00);
+        // Create Aarav (hero) - replace the rectangle with sprite
+        this.aarav = this.add.sprite(100, 450, 'aarav');
+        this.aarav.setScale(0.5); // Adjust this value to make the sprite an appropriate size
         this.physics.add.existing(this.aarav);
         this.aarav.body.setBounce(0);
         this.aarav.body.setCollideWorldBounds(true);
         this.aarav.body.setGravityY(600);
+        // Set the hitbox size if needed
+        this.aarav.body.setSize(50, 80); // Match the original rectangle dimensions
 
         // Create Ruhaan (boss)
-        this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
+        this.ruhaan = this.add.sprite(100, 450, 'ruhann');
         this.physics.add.existing(this.ruhaan);
         this.ruhaan.body.setBounce(0.2);
         this.ruhaan.body.setCollideWorldBounds(true);
         this.ruhaan.body.setGravityY(300);
+        this.ruhann.body.setSize(50, 80);
 
         // Create groups for projectiles
         this.bullets = this.physics.add.group();
@@ -305,7 +313,7 @@ class BossGame extends Phaser.Scene {
         this.updateBoss();
 
         // Update health bars and charge bars
-        this.aaravHealthBar.width = (this.aaravHealth / 150) * 400;
+        this.aaravHealthBar.width = (this.aaravHealth / 200) * 400;
         this.ruhhanHealthBar.width = (this.ruhhanHealth / 1000) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
