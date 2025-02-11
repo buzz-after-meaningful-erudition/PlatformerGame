@@ -56,9 +56,10 @@ class BossGame extends Phaser.Scene {
     }
     preload() {
         // Load background music with correct URL
-        this.load.audio('bgMusic', 'bgm.mp3');
+        this.load.audio('bgMusic', 'assets\bgm.mp3');
+        this.load.audio('bgMusic2', 'assets\bgm2.mp3')
         // Load burrito sprite
-        this.load.image('burrito', 'burrit.jpg');
+        this.load.image('burrito', 'assets\burrit.jpg');
         //aarav sprite
 //        this.load.image('aarav', 'aarav.jpg')
         //ruhann sprite
@@ -71,12 +72,33 @@ class BossGame extends Phaser.Scene {
         graphics.destroy();
     }
     create() {
+// Start background music
+let coinflip = Math.random();
+
+if (coinflip > 0.5) {
+    this.bgMusic = this.sound.add('bgMusic', {
+        loop: true,
+        volume: 0.4
+    });
+    this.bgMusic.play();
+} else {
+    this.bgMusic2 = this.sound.add('bgMusic2', {
+        loop: true,
+        volume: 0.4
+    });
+    this.bgMusic2.play();
+}
+
+```
+    create() {
         // Start background music
         this.bgMusic = this.sound.add('bgMusic', {
             loop: true,
             volume: 0.4
         });
         this.bgMusic.play();
+        ```
+
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
         this.cameras.main.setBounds(0, 0, 1600, 1000);
