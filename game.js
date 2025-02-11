@@ -108,7 +108,7 @@ class BossGame extends Phaser.Scene {
             .refreshBody();
 
         // Create Aarav (hero) - replace the rectangle with sprite
-        this.aarav = this.add.sprite(100, 450, 'aarav');
+        this.aarav = this.add.sprite(10, 45, 'aarav');
         this.aarav.setScale(0.25); // Adjust this value to make the sprite an appropriate size
         this.physics.add.existing(this.aarav);
         this.aarav.body.setBounce(0);
