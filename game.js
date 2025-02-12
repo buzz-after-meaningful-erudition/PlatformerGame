@@ -73,6 +73,8 @@ class BossGame extends Phaser.Scene {
     }
     create() {
 // Start background music
+
+```
 let coinflip = Math.random();
 this.create() ;
 if (coinflip > 0.5) {
@@ -97,7 +99,7 @@ if (coinflip > 0.5) {
             volume: 0.4
         });
         this.bgMusic.play();
-        ```
+        
 
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
