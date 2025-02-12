@@ -1,3 +1,9 @@
+---
+layout: page
+permalink: /instructions
+---
+
+
 genshjn1 <br>
 
 ### Instruction Manuall For Game RUHAAN SHOOTER
