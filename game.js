@@ -74,7 +74,7 @@ class BossGame extends Phaser.Scene {
     create() {
 // Start background music
 let coinflip = Math.random();
-
+this.create() ;
 if (coinflip > 0.5) {
     this.bgMusic = this.sound.add('bgMusic', {
         loop: true,
