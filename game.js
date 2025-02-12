@@ -99,7 +99,7 @@ if (coinflip > 0.5) {
             volume: 0.4
         });
         this.bgMusic.play();
-    }
+    
 
         // Set background color and camera bounds
         this.cameras.main.setBackgroundColor('#4488AA');
