@@ -1,5 +1,5 @@
 # Configuration, override port with usage: make PORT=4200
-PORT ?= 4100
+PORT ?= 4200
 REPO_NAME ?= gametest
 LOG_FILE = /tmp/jekyll$(PORT).log
 
