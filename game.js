@@ -56,9 +56,9 @@ class BossGame extends Phaser.Scene {
     }
     preload() {
         // Load background music with correct URL
-        this.load.audio('bgMusic', 'bgm.mp3');
+        this.load.audio('bgMusic', 'assets\bgm.mp3');
         // Load burrito sprite
-        this.load.image('burrito', 'burrit.jpg');
+        this.load.image('burrito', 'assets\burrit.jpg');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
