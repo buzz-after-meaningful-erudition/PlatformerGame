@@ -315,7 +315,7 @@ class BossGame extends Phaser.Scene {
         this.updateBoss();
 
         // Update health bars and charge bars
-        this.aaravHealthBar.width = (this.aaravHealth / 150) * 400;
+        this.aaravHealthBar.width = (this.aaravHealth / 200) * 400;
         this.ruhhanHealthBar.width = (this.ruhhanHealth / 1000) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
