@@ -21,7 +21,6 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         startButton.on('pointerdown', () => {
-            console.log('Start button clicked');
             this.scene.stop('StartScreen');
             this.scene.start('BossGame', {
                 firstStart: true
@@ -57,9 +56,9 @@ class BossGame extends Phaser.Scene {
     }
     preload() {
         // Load background music with correct URL
-        this.load.audio('bgMusic', 'assets/bgm.mp3');
+        this.load.audio('bgMusic', 'bgm.mp3');
         // Load burrito sprite
-        this.load.image('burrito', 'assets/burrit.jpg');
+        this.load.image('burrito', 'burrit.jpg');
         // Create a temporary platform texture
         let graphics = this.add.graphics();
         graphics.fillStyle(0x666666);
@@ -68,11 +67,6 @@ class BossGame extends Phaser.Scene {
         graphics.destroy();
     }
     create() {
-        // Add this at the start of create() to show controls on first start
-        if (this.firstStart) {
-            this.showControls();
-            this.firstStart = false;
-        }
         // Start background music
         this.bgMusic = this.sound.add('bgMusic', {
             loop: true,
