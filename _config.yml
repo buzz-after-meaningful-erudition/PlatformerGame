@@ -1,9 +1,9 @@
-title: Platformer Game
-description: "Platformer Game made for fun :D"
-owner_name: Advait Deshpande
-github_username: spektral05
-github_repo: "gametest" 
-baseurl: "/gametest"
+title: Test Game
+description: "Test Game for Gametest :D"
+owner_name: Zhengjie Xu
+github_username: xinjiav3
+github_repo: "qametest" 
+baseurl: "/qametest"
 future: true
 remote_theme: jekyll/minima
 minima:
