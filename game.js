@@ -188,7 +188,7 @@ class BossGame extends Phaser.Scene {
         this.hyperChargeFill.setOrigin(0, 0);
 
         // Add "HYPER" text
-        const hyperText = this.add.text(60, 155, 'HYPER', {
+        const hyperText = this.add.text(60, 155, 'HYPERCHARGE', {
             fontSize: '20px',
             fill: '#800080'
         });
