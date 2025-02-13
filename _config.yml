@@ -2,8 +2,8 @@ title: Test Game
 description: "Test Game for Gametest :D"
 owner_name: Zhengjie Xu
 github_username: xinjiav3
-github_repo: "qametest" 
-baseurl: "/qametest"
+github_repo: "gametest" 
+baseurl: "/gametest"
 future: true
 remote_theme: jekyll/minima
 minima:
