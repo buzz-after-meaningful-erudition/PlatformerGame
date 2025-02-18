@@ -27,7 +27,7 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         // Rogue class button
-        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 500\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack', {
+        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 750\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack\nPassive: 3 HP/s Regen while moving', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -85,6 +85,7 @@ class BossGame extends Phaser.Scene {
     }
     init(data) {
         // Initialize game variables
+        this.activeAxe = null; // Add this line to track the thrown axe
         this.aarav = null;
         this.jumpCount = 0;
         this.facingRight = true;
@@ -114,9 +115,9 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         // Set initial health based on class
-        this.aaravHealth = this.playerClass === 'rogue' ? 500 : 300;
+        this.aaravHealth = this.playerClass === 'rogue' ? 750 : 300;
         this.maxHealth = this.aaravHealth; // Store max health for UI scaling
-        this.ruhhanHealth = 1000; // Boss health remains the same
+        this.ruhhanHealth = 1500; // Buffed boss health
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
@@ -288,6 +289,14 @@ class BossGame extends Phaser.Scene {
     }
 
     update() {
+        // Rogue passive health regeneration - only when moving
+        if (this.playerClass === 'rogue' &&
+            this.aaravHealth < this.maxHealth &&
+            (this.aarav.body.velocity.x !== 0 || this.aarav.body.velocity.y !== 0)) {
+            // Regenerate 3 HP per second (adjust for frame rate)
+            this.aaravHealth = Math.min(this.maxHealth, this.aaravHealth + (3 / 60));
+        }
+
         // Handle poison damage
         if (this.isPoisoned && this.poisonDuration > 0) {
             this.poisonDuration -= 16; // Approximately one frame at 60fps
@@ -408,20 +417,43 @@ class BossGame extends Phaser.Scene {
             this.bullets.add(bullet);
             bullet.body.setVelocityX(this.facingRight ? bulletSpeed : -bulletSpeed);
             bullet.body.setAllowGravity(false);
-        } else if (this.playerClass === 'rogue' && this.time.now > this.lastShot + 1200) { // Slower attack speed for rogue
-            const axeOffset = this.facingRight ? 40 : -40;
-            const axe = this.physics.add.sprite(this.aarav.x + axeOffset, this.aarav.y, 'axe');
+        } else if (this.playerClass === 'rogue' && !this.activeAxe && this.time.now > this.lastShot + 1200) {
+            // Create and throw axe
+            const axe = this.physics.add.sprite(this.aarav.x, this.aarav.y, 'axe');
             axe.setScale(0.2);
-            this.bullets.add(axe);
-            axe.body.setAllowGravity(false);
             axe.isRogueBasicAttack = true;
+            axe.body.setAllowGravity(true);
+            axe.body.setBounce(0.3);
+            axe.body.setCollideWorldBounds(true);
 
-            // Melee range attack that stays in place
+            // Set the axe's velocity based on direction
+            const throwSpeed = 600;
+            const throwAngle = -0.4; // Slight upward angle
+            axe.body.setVelocity(
+                this.facingRight ? throwSpeed * Math.cos(throwAngle) : -throwSpeed * Math.cos(throwAngle),
+                throwSpeed * Math.sin(throwAngle)
+            );
+
+            // Add constant rotation
             this.tweens.add({
                 targets: axe,
-                rotation: this.facingRight ? 2 * Math.PI : -2 * Math.PI,
-                duration: 400,
-                onComplete: () => axe.destroy()
+                rotation: this.facingRight ? 6.28319 : -6.28319,
+                duration: 600,
+                repeat: -1
+            });
+
+            // Store the active axe reference
+            this.activeAxe = axe;
+
+            // Add collision with platforms
+            this.physics.add.collider(axe, this.platforms);
+
+            // Add overlap with player for pickup
+            this.physics.add.overlap(this.aarav, axe, () => {
+                if (axe.body.velocity.x === 0 && axe.body.velocity.y === 0) {
+                    axe.destroy();
+                    this.activeAxe = null;
+                }
             });
 
             this.lastShot = this.time.now;
@@ -745,18 +777,16 @@ class BossGame extends Phaser.Scene {
 
             // Create and throw axe
             const axe = this.physics.add.sprite(this.aarav.x, this.aarav.y, 'axe');
-            this.activeAxe = axe;
-
-            // Configure axe physics and appearance
             axe.setScale(0.3);
             axe.body.setAllowGravity(false);
+            axe.isSpecialBeam = true;
 
-            // Set the initial direction based on player facing
+            // Set initial throw direction and speed
             const throwSpeed = 800;
             const direction = this.facingRight ? 1 : -1;
             axe.body.setVelocityX(throwSpeed * direction);
 
-            // Add rotation animation
+            // Constant rotation
             this.tweens.add({
                 targets: axe,
                 rotation: direction * 6.28319,
@@ -764,71 +794,44 @@ class BossGame extends Phaser.Scene {
                 repeat: -1
             });
 
-            // Add collision with boss
-            this.physics.add.overlap(axe, this.ruhaan, (axe, boss) => {
-                const damage = this.hyperChargeActive ? 75 : 50;
-                const finalDamage = Math.floor(damage * this.damageMultiplier);
-                this.ruhhanHealth -= finalDamage;
+            // Return axe after 1 second
+            this.time.delayedCall(1000, () => {
+                // Track axe return
+                const returnInterval = this.time.addEvent({
+                    delay: 16,
+                    callback: () => {
+                        if (axe.active) {
+                            // Calculate angle to player's current position
+                            const dx = this.aarav.x - axe.x;
+                            const dy = this.aarav.y - axe.y;
+                            const angle = Math.atan2(dy, dx);
 
-                // Visual feedback for damage
-                const damageText = this.add.text(boss.x, boss.y - 50, `-${finalDamage}!`, {
-                    fontSize: '32px',
-                    fill: '#ff0000'
-                }).setOrigin(0.5);
+                            // Update axe velocity to follow player
+                            const returnSpeed = 1000;
+                            axe.body.setVelocity(
+                                Math.cos(angle) * returnSpeed,
+                                Math.sin(angle) * returnSpeed
+                            );
 
-                this.tweens.add({
-                    targets: damageText,
-                    y: damageText.y - 80,
-                    alpha: 0,
-                    duration: 800,
-                    onComplete: () => damageText.destroy()
+                            // Check if axe has returned
+                            if (Phaser.Math.Distance.Between(axe.x, axe.y, this.aarav.x, this.aarav.y) < 50) {
+                                returnInterval.destroy();
+                                axe.destroy();
+                                this.isPerformingSpecial = false;
+                            }
+                        }
+                    },
+                    loop: true
                 });
-            });
 
-            // Return axe after delay
-            this.time.delayedCall(500, () => {
-                if (axe.active) {
-                    // Start return phase
-                    axe.isReturning = true;
-                }
-            });
-
-            // Add update listener for axe return
-            const updateAxe = () => {
-                if (axe.active && axe.isReturning) {
-                    // Calculate angle to player
-                    const dx = this.aarav.x - axe.x;
-                    const dy = this.aarav.y - axe.y;
-                    const angle = Math.atan2(dy, dx);
-
-                    // Set return speed
-                    const returnSpeed = 1000;
-                    axe.body.setVelocity(
-                        Math.cos(angle) * returnSpeed,
-                        Math.sin(angle) * returnSpeed
-                    );
-
-                    // Check if axe has returned to player
-                    if (Phaser.Math.Distance.Between(axe.x, axe.y, this.aarav.x, this.aarav.y) < 50) {
-                        this.events.off('update', updateAxe);
+                // Safety cleanup after 2 seconds if axe hasn't returned
+                this.time.delayedCall(2000, () => {
+                    if (axe.active) {
+                        returnInterval.destroy();
                         axe.destroy();
-                        this.activeAxe = null;
                         this.isPerformingSpecial = false;
                     }
-                }
-            };
-
-            // Add the update listener
-            this.events.on('update', updateAxe);
-
-            // Safety cleanup after 3 seconds if axe hasn't returned
-            this.time.delayedCall(3000, () => {
-                if (axe.active) {
-                    this.events.off('update', updateAxe);
-                    axe.destroy();
-                    this.activeAxe = null;
-                    this.isPerformingSpecial = false;
-                }
+                });
             });
         }
 
