@@ -71,7 +71,8 @@ class StartScreen extends Phaser.Scene {
         startButton.on('pointerdown', () => {
             this.scene.stop('StartScreen');
             this.scene.start('BossGame', {
-                firstStart: true
+                firstStart: true,
+                playerClass: selectedClass
             });
         });
     }
@@ -81,6 +82,8 @@ class BossGame extends Phaser.Scene {
         super({
             key: 'BossGame'
         });
+    }
+    init(data) {
         // Initialize game variables
         this.aarav = null;
         this.jumpCount = 0;
@@ -91,7 +94,7 @@ class BossGame extends Phaser.Scene {
         this.isHyperCharged = false;
         this.hyperChargeActive = false;
         // Class-specific properties
-        this.playerClass = null; // Will be set to 'saiyan' or 'rogue'
+        this.playerClass = data.playerClass || 'saiyan'; // Will be set to 'saiyan' or 'rogue'
         // Rogue specific properties
         this.isStunning = false;
         this.throwingAxe = null;
@@ -111,7 +114,8 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         // Set initial health based on class
-        this.aaravHealth = this.playerClass === 'rogue' ? 300 : 500;
+        this.aaravHealth = this.playerClass === 'rogue' ? 300 : 200;
+        this.maxHealth = this.aaravHealth; // Store max health for UI scaling
         this.ruhhanHealth = 1000; // Boss health remains the same
         this.lastShot = 0;
         this.lastBossAttack = 0;
@@ -381,7 +385,7 @@ class BossGame extends Phaser.Scene {
         this.updateBoss();
 
         // Update health bars and charge bars
-        this.aaravHealthBar.width = (this.aaravHealth / 200) * 400;
+        this.aaravHealthBar.width = (this.aaravHealth / this.maxHealth) * 400;
         this.ruhhanHealthBar.width = (this.ruhhanHealth / 1000) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
@@ -599,11 +603,19 @@ class BossGame extends Phaser.Scene {
     }
     hitBoss(ruhaan, bullet) {
         bullet.destroy();
+        let damage = 0;
+
         if (bullet.isSpecialBeam) {
-            this.ruhhanHealth -= 50;
+            damage = this.playerClass === 'rogue' ? 75 : 50;
         } else {
-            this.ruhhanHealth -= 10;
+            damage = this.playerClass === 'rogue' ? 15 : 10;
         }
+
+        if (this.hyperChargeActive) {
+            damage *= 1.5;
+        }
+
+        this.ruhhanHealth -= damage;
         this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 0.8); // Takes more hits to charge
         this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.25); // Takes more hits to charge
         if (this.ruhhanHealth <= 0) {
@@ -637,6 +649,13 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
     }
     specialAttack() {
+        if (this.playerClass === 'rogue') {
+            this.throwAxe();
+        } else {
+            this.energyBeam();
+        }
+    }
+    throwAxe() {
         if (!this.isPerformingSpecial && !this.activeAxe) {
             this.isPerformingSpecial = true;
 
@@ -815,6 +834,32 @@ class BossGame extends Phaser.Scene {
         });
     }
     healingSuper() {
+        if (this.playerClass === 'rogue') {
+            // Rogue's stun attack
+            this.stunAttack();
+        } else {
+            // Saiyan's healing
+            this.healing();
+        }
+    }
+    stunAttack() {
+        // Stun effect on boss
+        this.ruhaan.setTint(0xFFFF00);
+        this.ruhaan.body.moves = false;
+
+        // Visual effect
+        const stunEffect = this.add.text(this.ruhaan.x, this.ruhaan.y - 50, '⚡STUNNED!⚡', {
+            fontSize: '24px',
+            fill: '#ffff00'
+        }).setOrigin(0.5);
+        // Remove stun after duration
+        this.time.delayedCall(this.stunDuration, () => {
+            this.ruhaan.clearTint();
+            this.ruhaan.body.moves = true;
+            stunEffect.destroy();
+        });
+    }
+    healing() {
         // Activate defense and damage boost
         this.defenseBoostActive = true;
         this.damageMultiplier = 1.5; // 50% damage boost
