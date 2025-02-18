@@ -464,11 +464,13 @@ class BossGame extends Phaser.Scene {
 
             // Add collision with boss
             this.physics.add.overlap(axe, this.ruhaan, (axe, boss) => {
-                if (axe.active) {
+                if (axe.active && !axe.hasDealtInitialDamage) {
+                    // Initial hit damage
                     const damage = 70;
                     this.ruhhanHealth -= damage;
+                    axe.hasDealtInitialDamage = true;
 
-                    // Visual feedback for damage
+                    // Visual feedback for initial damage
                     const damageText = this.add.text(boss.x, boss.y - 50, `-${damage}!`, {
                         fontSize: '32px',
                         fill: '#ff0000'
@@ -481,6 +483,35 @@ class BossGame extends Phaser.Scene {
                         duration: 800,
                         onComplete: () => damageText.destroy()
                     });
+
+                    // Set up damage over time
+                    if (!axe.dotInterval) {
+                        axe.lastDotTime = 0;
+                        axe.dotInterval = this.time.addEvent({
+                            delay: 1000, // 1 second interval
+                            callback: () => {
+                                if (axe.active && Phaser.Geom.Intersects.RectangleToRectangle(axe.getBounds(), boss.getBounds())) {
+                                    // Deal 3 damage per second
+                                    this.ruhhanHealth -= 3;
+
+                                    // Visual feedback for DOT
+                                    const dotText = this.add.text(boss.x, boss.y - 30, '-3', {
+                                        fontSize: '20px',
+                                        fill: '#ff6666'
+                                    }).setOrigin(0.5);
+
+                                    this.tweens.add({
+                                        targets: dotText,
+                                        y: dotText.y - 40,
+                                        alpha: 0,
+                                        duration: 500,
+                                        onComplete: () => dotText.destroy()
+                                    });
+                                }
+                            },
+                            loop: true
+                        });
+                    }
                 }
             });
 
@@ -525,11 +556,11 @@ class BossGame extends Phaser.Scene {
         if (this.ruhaan.body.touching.down) {
             if (distanceToPlayer > 500) {
                 // Move to closest platform above player
-                this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
-                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-600);
+                this.ruhaan.body.setVelocityX(direction < 0 ? -200 : 200);
+                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-700);
             } else if (distanceToPlayer < 200) {
                 // Back away and possibly prepare for ground pound
-                this.ruhaan.body.setVelocityX(direction < 0 ? 200 : -200);
+                this.ruhaan.body.setVelocityX(direction < 0 ? 250 : -250);
                 if (this.aarav.y > this.ruhaan.y && Math.random() < 0.1) {
                     this.bossGroundPound();
                 }
@@ -710,6 +741,14 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
         let damage = 0;
 
+        // Create damage counter text
+        const damageText = this.add.text(ruhaan.x, ruhaan.y - 50, '', {
+            fontSize: '28px',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+
         if (bullet.isSpecialBeam) {
             damage = this.playerClass === 'rogue' ? 75 : 50;
         } else if (bullet.isRogueBasicAttack) {
@@ -723,6 +762,30 @@ class BossGame extends Phaser.Scene {
         }
 
         this.ruhhanHealth -= damage;
+
+        // Set damage text color based on attack type
+        let textColor = '#ff0000';
+        if (bullet.isSpecialBeam) {
+            textColor = this.hyperChargeActive ? '#800080' : '#00ffff';
+        } else if (bullet.isRogueBasicAttack) {
+            textColor = '#ffa500';
+        }
+
+        damageText.setStyle({
+            fill: textColor
+        });
+        damageText.setText(`-${Math.round(damage)}`);
+
+        // Animate the damage text
+        this.tweens.add({
+            targets: damageText,
+            y: damageText.y - 80,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power1',
+            onComplete: () => damageText.destroy()
+        });
+
         // Rogue charges faster
         if (this.playerClass === 'rogue') {
             this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 2.5); // Even faster charge for rogue
@@ -739,6 +802,14 @@ class BossGame extends Phaser.Scene {
     hitPlayer(aarav, projectile) {
         let damage = this.hyperChargeActive ? 10 : 15; // Base damage
 
+        // Create damage counter text
+        const damageText = this.add.text(aarav.x, aarav.y - 50, '', {
+            fontSize: '28px',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+
         // Reduce damage when defense boost is active
         if (this.defenseBoostActive) {
             damage = Math.floor(damage * 0.6); // 40% damage reduction
@@ -751,6 +822,30 @@ class BossGame extends Phaser.Scene {
         }
 
         this.aaravHealth -= damage;
+
+        // Set damage text color and content based on attack type
+        let textColor = '#ff0000';
+        let displayDamage = Math.round(damage);
+
+        if (projectile.isBurrito) {
+            textColor = '#00ff00'; // Green for poison damage
+        }
+
+        damageText.setStyle({
+            fill: textColor
+        });
+        damageText.setText(`-${displayDamage}`);
+
+        // Animate the damage text
+        this.tweens.add({
+            targets: damageText,
+            y: damageText.y - 80,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power1',
+            onComplete: () => damageText.destroy()
+        });
+
         projectile.destroy();
 
         if (this.aaravHealth <= 0) {
