@@ -42,6 +42,13 @@ class BossGame extends Phaser.Scene {
         this.hyperChargeAmount = 0;
         this.isHyperCharged = false;
         this.hyperChargeActive = false;
+        // Rogue specific properties
+        this.isRogue = true;
+        this.defenseBoostActive = false;
+        this.defenseBoostDuration = 0;
+        this.damageMultiplier = 1;
+        this.axeReturnDelay = 1000;
+        this.activeAxe = null;
         this.hyperChargeDuration = 5000; // 5 seconds in milliseconds
         this.ruhaan = null;
         this.platforms = null;
@@ -56,7 +63,9 @@ class BossGame extends Phaser.Scene {
     }
     preload() {
         // Load background music with correct URL
-        this.load.audio('bgMusic', 'bgm.mp3');
+        this.load.audio('bgMusic', 'https://play.rosebud.ai/assets/Bossfight - Milky Ways.mp3?5Zus');
+        // Load axe sprite
+        this.load.image('axe', 'https://play.rosebud.ai/assets/GreatAxe.png?K7Gg');
         // Load burrito sprite
         this.load.image('burrito', 'burrit.jpg');
         // Create a temporary platform texture
@@ -108,7 +117,7 @@ class BossGame extends Phaser.Scene {
             .refreshBody();
 
         // Create Aarav (hero)
-//        this.aarav = this.add.rectangle(100, 450, "50, 80, 0x00ff00");
+        //        this.aarav = this.add.rectangle(100, 450, "50, 80, 0x00ff00");
         this.aarav = this.add.sprite(100, 450, 'arrav');
         this.physics.add.existing(this.aarav);
         this.aarav.body.setBounce(0);
@@ -118,7 +127,7 @@ class BossGame extends Phaser.Scene {
         this.aarav.setScale(0.5);
 
         // Create Ruhaan (boss)
-//        this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
+        //        this.ruhaan = this.add.rectangle(700, 450, 80, 120, 0xff0000);
         this.ruhaan = this.add.sprite(700, 450, 'ruhaan');
         this.physics.add.existing(this.ruhaan);
         this.ruhaan.body.setBounce(0.2);
@@ -548,6 +557,11 @@ class BossGame extends Phaser.Scene {
     hitPlayer(aarav, projectile) {
         let damage = this.hyperChargeActive ? 10 : 15; // Base damage
 
+        // Reduce damage when defense boost is active
+        if (this.defenseBoostActive) {
+            damage = Math.floor(damage * 0.6); // 40% damage reduction
+        }
+
         if (projectile.isBurrito) {
             damage = 5; // Burrito damage
             this.isPoisoned = true;
@@ -566,10 +580,93 @@ class BossGame extends Phaser.Scene {
         bullet.destroy();
     }
     specialAttack() {
-        this.isPerformingSpecial = true;
-        const chargeTime = 1000; // 1 second charge
-        const beamLength = 500;
-        const beamWidth = 40;
+        if (!this.isPerformingSpecial && !this.activeAxe) {
+            this.isPerformingSpecial = true;
+
+            // Create and throw axe
+            const axe = this.physics.add.sprite(this.aarav.x, this.aarav.y, 'axe');
+            this.activeAxe = axe;
+
+            // Configure axe physics and appearance
+            axe.setScale(0.3);
+            axe.body.setAllowGravity(false);
+
+            // Initial throw velocity
+            const throwSpeed = 800;
+            axe.body.setVelocityX(this.facingRight ? throwSpeed : -throwSpeed);
+
+            // Add rotation animation
+            this.tweens.add({
+                targets: axe,
+                rotation: this.facingRight ? 6.28319 : -6.28319,
+                duration: 1000,
+                repeat: -1
+            });
+
+            // Return axe after delay
+            this.time.delayedCall(this.axeReturnDelay, () => {
+                if (axe.active) {
+                    const returnToPlayer = () => {
+                        if (axe.active) {
+                            const angle = Phaser.Math.Angle.Between(
+                                axe.x, axe.y,
+                                this.aarav.x, this.aarav.y
+                            );
+
+                            const speed = 1000;
+                            axe.body.setVelocity(
+                                Math.cos(angle) * speed,
+                                Math.sin(angle) * speed
+                            );
+
+                            // Check if axe is close to player to catch it
+                            if (Phaser.Math.Distance.Between(axe.x, axe.y, this.aarav.x, this.aarav.y) < 50) {
+                                axe.destroy();
+                                this.activeAxe = null;
+                                this.isPerformingSpecial = false;
+                            }
+                        }
+                    };
+
+                    this.events.on('update', returnToPlayer);
+
+                    // Cleanup if axe hasn't returned after 2 seconds
+                    this.time.delayedCall(2000, () => {
+                        if (axe.active) {
+                            axe.destroy();
+                            this.activeAxe = null;
+                            this.isPerformingSpecial = false;
+                        }
+                        this.events.off('update', returnToPlayer);
+                    });
+                }
+            });
+
+            // Add collision with boss
+            this.physics.add.overlap(axe, this.ruhaan, (axe, boss) => {
+                const damage = this.hyperChargeActive ? 75 : 50;
+                const finalDamage = Math.floor(damage * this.damageMultiplier);
+                this.ruhhanHealth -= finalDamage;
+
+                // Visual feedback for damage
+                const damageText = this.add.text(boss.x, boss.y - 50, `-${finalDamage}!`, {
+                    fontSize: '32px',
+                    fill: '#ff0000'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: damageText,
+                    y: damageText.y - 80,
+                    alpha: 0,
+                    duration: 800,
+                    onComplete: () => damageText.destroy()
+                });
+
+                if (this.ruhhanHealth <= 0) {
+                    this.gameOver();
+                }
+            });
+        }
 
         // Create charging effect
         const chargeCircle = this.add.circle(this.aarav.x, this.aarav.y, 30, this.hyperChargeActive ? 0x800080 : 0x00ffff, 0.5);
@@ -661,9 +758,34 @@ class BossGame extends Phaser.Scene {
         });
     }
     healingSuper() {
-        // Heal for 30% (or 60% when hypercharged) of max health
-        const healAmount = this.hyperChargeActive ? 60 : 30;
-        this.aaravHealth = Math.min(100, this.aaravHealth + healAmount);
+        // Activate defense and damage boost
+        this.defenseBoostActive = true;
+        this.damageMultiplier = 1.5; // 50% damage boost
+
+        // Visual effect for boost activation
+        const boostEffect = this.add.circle(this.aarav.x, this.aarav.y, 50, 0xffff00, 0.3);
+        this.tweens.add({
+            targets: boostEffect,
+            scale: 2,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => boostEffect.destroy()
+        });
+
+        // Create buff icon above player
+        const buffIcon = this.add.text(this.aarav.x, this.aarav.y - 60, '⚔️', {
+            fontSize: '32px'
+        }).setOrigin(0.5);
+
+        // Duration of the boost
+        const boostDuration = this.hyperChargeActive ? 8000 : 5000; // 8 or 5 seconds
+
+        // Remove boost after duration
+        this.time.delayedCall(boostDuration, () => {
+            this.defenseBoostActive = false;
+            this.damageMultiplier = 1;
+            buffIcon.destroy();
+        });
         // Create healing animation (plus signs)
         for (let i = 0; i < 5; i++) {
             const plusSign = this.add.text(
