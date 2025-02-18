@@ -410,6 +410,11 @@ class BossGame extends Phaser.Scene {
     }
 
     updateBoss() {
+        // If boss is stunned, don't perform any actions
+        if (this.ruhaan.isStunned) {
+            return;
+        }
+
         const distanceToPlayer = Phaser.Math.Distance.Between(
             this.ruhaan.x, this.ruhaan.y,
             this.aarav.x, this.aarav.y
@@ -652,7 +657,59 @@ class BossGame extends Phaser.Scene {
         if (this.playerClass === 'rogue') {
             this.throwAxe();
         } else {
-            this.energyBeam();
+            // Initialize beam properties
+            const beamWidth = 40;
+            const beamLength = 800;
+            const chargeTime = 500;
+            this.isPerformingSpecial = true;
+
+            // Create charging effect
+            const chargeCircle = this.add.circle(this.aarav.x, this.aarav.y, 30, this.hyperChargeActive ? 0x800080 : 0x00ffff, 0.5);
+            this.tweens.add({
+                targets: chargeCircle,
+                scale: 2,
+                alpha: 0.8,
+                duration: chargeTime,
+                yoyo: true,
+                repeat: 0,
+                onComplete: () => chargeCircle.destroy()
+            });
+            // After charge time, fire the beam
+            this.time.delayedCall(chargeTime, () => {
+                // Create main beam
+                const beam = this.add.rectangle(this.aarav.x, this.aarav.y, beamLength, beamWidth, this.hyperChargeActive ? 0x800080 : 0x00ffff);
+                this.bullets.add(beam);
+                beam.isSpecialBeam = true;
+                beam.body.setAllowGravity(false);
+
+                // Set beam direction based on player facing
+                const direction = this.facingRight ? 1 : -1;
+                beam.body.setVelocityX(1000 * direction);
+                // Add beam particles
+                for (let i = 0; i < 20; i++) {
+                    const particle = this.add.circle(
+                        this.aarav.x + (direction * Phaser.Math.Between(0, beamLength / 2)),
+                        this.aarav.y + Phaser.Math.Between(-beamWidth / 2, beamWidth / 2),
+                        Phaser.Math.Between(5, 10),
+                        this.hyperChargeActive ? 0x800080 : 0x00ffff
+                    );
+                    this.tweens.add({
+                        targets: particle,
+                        x: particle.x + (direction * Phaser.Math.Between(100, 200)),
+                        alpha: 0,
+                        scale: 0.5,
+                        duration: 500,
+                        onComplete: () => particle.destroy()
+                    });
+                }
+                // Destroy beam after 1 second
+                this.time.delayedCall(1000, () => {
+                    if (beam.active) {
+                        beam.destroy();
+                    }
+                    this.isPerformingSpecial = false;
+                });
+            });
         }
     }
     throwAxe() {
@@ -667,55 +724,17 @@ class BossGame extends Phaser.Scene {
             axe.setScale(0.3);
             axe.body.setAllowGravity(false);
 
-            // Initial throw velocity
+            // Set the initial direction based on player facing
             const throwSpeed = 800;
-            axe.body.setVelocityX(this.facingRight ? throwSpeed : -throwSpeed);
+            const direction = this.facingRight ? 1 : -1;
+            axe.body.setVelocityX(throwSpeed * direction);
 
             // Add rotation animation
             this.tweens.add({
                 targets: axe,
-                rotation: this.facingRight ? 6.28319 : -6.28319,
+                rotation: direction * 6.28319,
                 duration: 1000,
                 repeat: -1
-            });
-
-            // Return axe after delay
-            this.time.delayedCall(this.axeReturnDelay, () => {
-                if (axe.active) {
-                    const returnToPlayer = () => {
-                        if (axe.active) {
-                            const angle = Phaser.Math.Angle.Between(
-                                axe.x, axe.y,
-                                this.aarav.x, this.aarav.y
-                            );
-
-                            const speed = 1000;
-                            axe.body.setVelocity(
-                                Math.cos(angle) * speed,
-                                Math.sin(angle) * speed
-                            );
-
-                            // Check if axe is close to player to catch it
-                            if (Phaser.Math.Distance.Between(axe.x, axe.y, this.aarav.x, this.aarav.y) < 50) {
-                                axe.destroy();
-                                this.activeAxe = null;
-                                this.isPerformingSpecial = false;
-                            }
-                        }
-                    };
-
-                    this.events.on('update', returnToPlayer);
-
-                    // Cleanup if axe hasn't returned after 2 seconds
-                    this.time.delayedCall(2000, () => {
-                        if (axe.active) {
-                            axe.destroy();
-                            this.activeAxe = null;
-                            this.isPerformingSpecial = false;
-                        }
-                        this.events.off('update', returnToPlayer);
-                    });
-                }
             });
 
             // Add collision with boss
@@ -737,9 +756,51 @@ class BossGame extends Phaser.Scene {
                     duration: 800,
                     onComplete: () => damageText.destroy()
                 });
+            });
 
-                if (this.ruhhanHealth <= 0) {
-                    this.gameOver();
+            // Return axe after delay
+            this.time.delayedCall(500, () => {
+                if (axe.active) {
+                    // Start return phase
+                    axe.isReturning = true;
+                }
+            });
+
+            // Add update listener for axe return
+            const updateAxe = () => {
+                if (axe.active && axe.isReturning) {
+                    // Calculate angle to player
+                    const dx = this.aarav.x - axe.x;
+                    const dy = this.aarav.y - axe.y;
+                    const angle = Math.atan2(dy, dx);
+
+                    // Set return speed
+                    const returnSpeed = 1000;
+                    axe.body.setVelocity(
+                        Math.cos(angle) * returnSpeed,
+                        Math.sin(angle) * returnSpeed
+                    );
+
+                    // Check if axe has returned to player
+                    if (Phaser.Math.Distance.Between(axe.x, axe.y, this.aarav.x, this.aarav.y) < 50) {
+                        this.events.off('update', updateAxe);
+                        axe.destroy();
+                        this.activeAxe = null;
+                        this.isPerformingSpecial = false;
+                    }
+                }
+            };
+
+            // Add the update listener
+            this.events.on('update', updateAxe);
+
+            // Safety cleanup after 3 seconds if axe hasn't returned
+            this.time.delayedCall(3000, () => {
+                if (axe.active) {
+                    this.events.off('update', updateAxe);
+                    axe.destroy();
+                    this.activeAxe = null;
+                    this.isPerformingSpecial = false;
                 }
             });
         }
@@ -839,72 +900,143 @@ class BossGame extends Phaser.Scene {
             this.stunAttack();
         } else {
             // Saiyan's healing
+            const healAmount = this.hyperChargeActive ? 100 : 50;
+            this.aaravHealth = Math.min(this.maxHealth, this.aaravHealth + healAmount);
             this.healing();
         }
     }
     stunAttack() {
-        // Stun effect on boss
-        this.ruhaan.setTint(0xFFFF00);
-        this.ruhaan.body.moves = false;
+        if (!this.ruhaan.isStunned) {
+            // Set stun flag
+            this.ruhaan.isStunned = true;
 
-        // Visual effect
-        const stunEffect = this.add.text(this.ruhaan.x, this.ruhaan.y - 50, '⚡STUNNED!⚡', {
-            fontSize: '24px',
-            fill: '#ffff00'
-        }).setOrigin(0.5);
-        // Remove stun after duration
-        this.time.delayedCall(this.stunDuration, () => {
-            this.ruhaan.clearTint();
-            this.ruhaan.body.moves = true;
-            stunEffect.destroy();
-        });
+            // Stop all current boss movements and attacks
+            this.ruhaan.body.setVelocity(0, 0);
+            this.ruhaan.body.moves = false;
+
+            // Visual effects for stun
+            this.ruhaan.setTint(0xFFFF00);
+
+            // Create stun stars effect
+            const createStunStar = () => {
+                if (this.ruhaan.isStunned) {
+                    const star = this.add.text(
+                        this.ruhaan.x + Phaser.Math.Between(-30, 30),
+                        this.ruhaan.y + Phaser.Math.Between(-50, -20),
+                        '⭐', {
+                            fontSize: '24px'
+                        }
+                    ).setOrigin(0.5);
+                    this.tweens.add({
+                        targets: star,
+                        y: star.y - 30,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => star.destroy()
+                    });
+                }
+            };
+            // Create stun effect text
+            const stunEffect = this.add.text(
+                this.ruhaan.x,
+                this.ruhaan.y - 50,
+                '⚡STUNNED!⚡', {
+                    fontSize: '24px',
+                    fill: '#ffff00',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5);
+            // Update stun effect position
+            const updateStunText = () => {
+                if (stunEffect.active) {
+                    stunEffect.setPosition(this.ruhaan.x, this.ruhaan.y - 50);
+                }
+            };
+            this.events.on('update', updateStunText);
+            // Create periodic stun stars
+            const starTimer = this.time.addEvent({
+                delay: 300,
+                callback: createStunStar,
+                repeat: this.stunDuration / 300 - 1
+            });
+            // Remove stun after duration
+            this.time.delayedCall(this.stunDuration, () => {
+                this.ruhaan.isStunned = false;
+                this.ruhaan.clearTint();
+                this.ruhaan.body.moves = true;
+                stunEffect.destroy();
+                this.events.off('update', updateStunText);
+                starTimer.remove();
+            });
+        }
     }
     healing() {
         // Activate defense and damage boost
         this.defenseBoostActive = true;
         this.damageMultiplier = 1.5; // 50% damage boost
-
-        // Visual effect for boost activation
-        const boostEffect = this.add.circle(this.aarav.x, this.aarav.y, 50, 0xffff00, 0.3);
+        // Create healing circle effect
+        const healEffect = this.add.circle(this.aarav.x, this.aarav.y, 50, 0x00ff00, 0.3);
         this.tweens.add({
-            targets: boostEffect,
+            targets: healEffect,
             scale: 2,
             alpha: 0,
             duration: 500,
-            onComplete: () => boostEffect.destroy()
+            onComplete: () => healEffect.destroy()
         });
-
-        // Create buff icon above player
-        const buffIcon = this.add.text(this.aarav.x, this.aarav.y - 60, '⚔️', {
+        // Create healing buff icon (green heart)
+        const buffIcon = this.add.text(this.aarav.x, this.aarav.y - 60, '💚', {
             fontSize: '32px'
         }).setOrigin(0.5);
-
-        // Duration of the boost
-        const boostDuration = this.hyperChargeActive ? 8000 : 5000; // 8 or 5 seconds
-
-        // Remove boost after duration
-        this.time.delayedCall(boostDuration, () => {
+        // Update buff icon position with player
+        const updateIconPosition = () => {
+            if (buffIcon && buffIcon.active) {
+                buffIcon.setPosition(this.aarav.x, this.aarav.y - 60);
+            }
+        };
+        this.events.on('update', updateIconPosition);
+        // Duration of the healing buff
+        const healDuration = this.hyperChargeActive ? 8000 : 5000; // 8 or 5 seconds
+        // Remove buff after duration
+        this.time.delayedCall(healDuration, () => {
             this.defenseBoostActive = false;
             this.damageMultiplier = 1;
-            buffIcon.destroy();
+            if (buffIcon && buffIcon.active) {
+                buffIcon.destroy();
+            }
+            this.events.off('update', updateIconPosition);
         });
-        // Create healing animation (plus signs)
-        for (let i = 0; i < 5; i++) {
-            const plusSign = this.add.text(
-                this.aarav.x + Phaser.Math.Between(-20, 20),
+        // Create healing animation with numbers
+        const healAmount = this.hyperChargeActive ? '+100' : '+50';
+        const healText = this.add.text(this.aarav.x, this.aarav.y - 40, healAmount, {
+            fontSize: '32px',
+            fill: '#00ff00',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.tweens.add({
+            targets: healText,
+            y: healText.y - 80,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power1',
+            onComplete: () => healText.destroy()
+        });
+        // Create healing particles
+        for (let i = 0; i < 8; i++) {
+            const particle = this.add.circle(
+                this.aarav.x + Phaser.Math.Between(-30, 30),
                 this.aarav.y + Phaser.Math.Between(-30, 30),
-                '+', {
-                    fontSize: '32px',
-                    fill: this.hyperChargeActive ? '#800080' : '#00ff00'
-                }
+                5,
+                0x00ff00
             );
             this.tweens.add({
-                targets: plusSign,
-                y: plusSign.y - 100,
+                targets: particle,
+                y: particle.y - Phaser.Math.Between(60, 100),
                 alpha: 0,
-                duration: 1000,
+                scale: 0.5,
+                duration: 800,
                 ease: 'Power1',
-                onComplete: () => plusSign.destroy()
+                onComplete: () => particle.destroy()
             });
         }
     }
