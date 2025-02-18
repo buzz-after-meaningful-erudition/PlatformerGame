@@ -328,7 +328,15 @@ class BossGame extends Phaser.Scene {
         }
 
         // Player movement and jump
-        const baseSpeed = this.aarav.body.touching.down ? 300 : 250;
+        let baseSpeed = this.aarav.body.touching.down ? 300 : 250;
+        // Rogue is slower with axe, faster without
+        if (this.playerClass === 'rogue') {
+            if (this.activeAxe) {
+                baseSpeed *= 0.7; // 30% slower with axe
+            } else {
+                baseSpeed *= 1.2; // 20% faster without axe
+            }
+        }
         const moveSpeed = this.hyperChargeActive ? baseSpeed * 1.5 : baseSpeed;
 
         if (this.cursors.left.isDown) {
@@ -421,6 +429,30 @@ class BossGame extends Phaser.Scene {
             // Create and throw axe
             const axe = this.physics.add.sprite(this.aarav.x, this.aarav.y, 'axe');
             axe.setScale(0.2);
+
+            // Visual feedback for speed boost when throwing
+            const speedBoostText = this.add.text(this.aarav.x, this.aarav.y - 50, 'Speed +20%', {
+                fontSize: '24px',
+                fill: '#00ff00'
+            }).setOrigin(0.5);
+
+            this.tweens.add({
+                targets: speedBoostText,
+                y: speedBoostText.y - 30,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => speedBoostText.destroy()
+            });
+
+            // Speed boost effect
+            const boostEffect = this.add.circle(this.aarav.x, this.aarav.y, 20, 0x00ff00, 0.5);
+            this.tweens.add({
+                targets: boostEffect,
+                scale: 2,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => boostEffect.destroy()
+            });
             axe.isRogueBasicAttack = true;
             axe.body.setAllowGravity(true);
             axe.body.setBounce(0);
@@ -529,6 +561,29 @@ class BossGame extends Phaser.Scene {
                         alpha: 0,
                         duration: 200,
                         onComplete: () => pickupEffect.destroy()
+                    });
+                    // Visual feedback for speed reduction
+                    const speedEffect = this.add.circle(axe.x, axe.y, 20, 0xff0000, 0.5);
+                    this.tweens.add({
+                        targets: speedEffect,
+                        scale: 2,
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => speedEffect.destroy()
+                    });
+
+                    // Text indicator for speed change
+                    const speedText = this.add.text(this.aarav.x, this.aarav.y - 50, 'Speed -30%', {
+                        fontSize: '24px',
+                        fill: '#ff0000'
+                    }).setOrigin(0.5);
+
+                    this.tweens.add({
+                        targets: speedText,
+                        y: speedText.y - 30,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => speedText.destroy()
                     });
 
                     axe.destroy();
@@ -754,7 +809,7 @@ class BossGame extends Phaser.Scene {
         } else if (bullet.isRogueBasicAttack) {
             damage = 40; // Reduced initial hit damage for rogue's basic attack
         } else {
-            damage = this.playerClass === 'rogue' ? 70 : 10;
+            damage = this.playerClass === 'rogue' ? 40 : 10;
         }
 
         if (this.hyperChargeActive) {
