@@ -409,7 +409,7 @@ class BossGame extends Phaser.Scene {
             bullet.body.setVelocityX(this.facingRight ? bulletSpeed : -bulletSpeed);
             bullet.body.setAllowGravity(false);
         } else if (this.playerClass === 'rogue' && this.time.now > this.lastShot + 1200) { // Slower attack speed for rogue
-            const axeOffset = this.facingRight ? 60 : -60;
+            const axeOffset = this.facingRight ? 40 : -40;
             const axe = this.physics.add.sprite(this.aarav.x + axeOffset, this.aarav.y, 'axe');
             axe.setScale(0.2);
             this.bullets.add(axe);
@@ -632,9 +632,9 @@ class BossGame extends Phaser.Scene {
         if (bullet.isSpecialBeam) {
             damage = this.playerClass === 'rogue' ? 75 : 50;
         } else if (bullet.isRogueBasicAttack) {
-            damage = 35; // Higher damage for rogue's basic attack
+            damage = 70; // Much higher damage for rogue's basic attack
         } else {
-            damage = this.playerClass === 'rogue' ? 35 : 10;
+            damage = this.playerClass === 'rogue' ? 70 : 10;
         }
 
         if (this.hyperChargeActive) {
@@ -642,8 +642,14 @@ class BossGame extends Phaser.Scene {
         }
 
         this.ruhhanHealth -= damage;
-        this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 0.8); // Takes more hits to charge
-        this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.25); // Takes more hits to charge
+        // Rogue charges faster
+        if (this.playerClass === 'rogue') {
+            this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 2.5); // Even faster charge for rogue
+            this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.75); // Faster hypercharge for rogue
+        } else {
+            this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 0.8);
+            this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.25);
+        }
         if (this.ruhhanHealth <= 0) {
             this.gameOver();
         }
