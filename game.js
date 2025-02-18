@@ -6,12 +6,60 @@ class StartScreen extends Phaser.Scene {
     }
     create() {
         // Title
-        this.add.text(800, 400, 'AARAV VS RUHAAN', {
+        this.add.text(800, 300, 'AARAV VS RUHAAN', {
             fontSize: '84px',
             fill: '#fff'
         }).setOrigin(0.5);
+        // Class selection text
+        this.add.text(800, 400, 'Select Your Class:', {
+            fontSize: '32px',
+            fill: '#fff'
+        }).setOrigin(0.5);
+        // Saiyan class button
+        const saiyanButton = this.add.text(600, 500, 'Saiyan\n\nHP: 500\nSpeed: 100%\nQ: Energy Beam\nE: Healing', {
+                fontSize: '24px',
+                fill: '#fff',
+                align: 'center'
+            }).setOrigin(0.5)
+            .setInteractive()
+            .setPadding(20)
+            .setStyle({
+                backgroundColor: '#111'
+            });
+        // Rogue class button
+        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 300\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack', {
+                fontSize: '24px',
+                fill: '#fff',
+                align: 'center'
+            }).setOrigin(0.5)
+            .setInteractive()
+            .setPadding(20)
+            .setStyle({
+                backgroundColor: '#111'
+            });
+        // Highlight selected class
+        let selectedClass = null;
+
+        saiyanButton.on('pointerdown', () => {
+            saiyanButton.setStyle({
+                backgroundColor: '#444'
+            });
+            rogueButton.setStyle({
+                backgroundColor: '#111'
+            });
+            selectedClass = 'saiyan';
+        });
+        rogueButton.on('pointerdown', () => {
+            rogueButton.setStyle({
+                backgroundColor: '#444'
+            });
+            saiyanButton.setStyle({
+                backgroundColor: '#111'
+            });
+            selectedClass = 'rogue';
+        });
         // Start button
-        const startButton = this.add.text(800, 500, 'Click to Start', {
+        const startButton = this.add.text(800, 700, 'Start Game', {
                 fontSize: '32px',
                 fill: '#fff'
             }).setOrigin(0.5)
@@ -36,12 +84,20 @@ class BossGame extends Phaser.Scene {
         // Initialize game variables
         this.aarav = null;
         this.jumpCount = 0;
-        this.facingRight = true; // Track which direction Aarav is facing
+        this.facingRight = true;
         this.isPoisoned = false;
         this.poisonDuration = 0;
         this.hyperChargeAmount = 0;
         this.isHyperCharged = false;
         this.hyperChargeActive = false;
+        // Class-specific properties
+        this.playerClass = null; // Will be set to 'saiyan' or 'rogue'
+        // Rogue specific properties
+        this.isStunning = false;
+        this.throwingAxe = null;
+        this.axeReturning = false;
+        this.stunDuration = 2000; // 2 seconds
+        this.canThrowAxe = true;
         // Rogue specific properties
         this.isRogue = true;
         this.defenseBoostActive = false;
@@ -54,8 +110,9 @@ class BossGame extends Phaser.Scene {
         this.platforms = null;
         this.bullets = null;
         this.bossBalls = null;
-        this.aaravHealth = 150;
-        this.ruhhanHealth = 1000; // Adjusted boss health
+        // Set initial health based on class
+        this.aaravHealth = this.playerClass === 'rogue' ? 300 : 500;
+        this.ruhhanHealth = 1000; // Boss health remains the same
         this.lastShot = 0;
         this.lastBossAttack = 0;
         this.specialAttackCharge = 0; // Counter for special attack
