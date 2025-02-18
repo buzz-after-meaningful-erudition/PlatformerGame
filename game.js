@@ -16,7 +16,7 @@ class StartScreen extends Phaser.Scene {
             fill: '#fff'
         }).setOrigin(0.5);
         // Saiyan class button
-        const saiyanButton = this.add.text(600, 500, 'Saiyan\n\nHP: 300\nSpeed: 100%\nQ: Energy Beam\nE: Healing', {
+        const saiyanButton = this.add.text(600, 550, 'Saiyan\n\nHP: 300\nSpeed: 100%\nQ: Energy Beam\nE: Healing', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -27,7 +27,7 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         // Rogue class button
-        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 750\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack\nPassive: 3 HP/s Regen while moving', {
+        const rogueButton = this.add.text(1000, 550, 'Rogue\n\nHP: 750\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack\nPassive: 3 HP/s Regen while moving', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -395,7 +395,7 @@ class BossGame extends Phaser.Scene {
 
         // Update health bars and charge bars
         this.aaravHealthBar.width = (this.aaravHealth / this.maxHealth) * 400;
-        this.ruhhanHealthBar.width = (this.ruhhanHealth / 1000) * 400;
+        this.ruhhanHealthBar.width = (this.ruhhanHealth / 1500) * 400;
         this.chargeBarFill.width = (this.specialAttackCharge / 10) * 400;
         this.hyperChargeFill.width = (this.hyperChargeAmount / 10) * 400;
         // Handle hypercharge activation
@@ -423,8 +423,17 @@ class BossGame extends Phaser.Scene {
             axe.setScale(0.2);
             axe.isRogueBasicAttack = true;
             axe.body.setAllowGravity(true);
-            axe.body.setBounce(0.3);
+            axe.body.setBounce(0);
             axe.body.setCollideWorldBounds(true);
+
+            // Add collision with world bounds
+            axe.body.onWorldBounds = true;
+            this.physics.world.on('worldbounds', (body) => {
+                if (body.gameObject === axe) {
+                    body.gameObject.setVelocity(0, 0);
+                    body.gameObject.body.setAllowGravity(false);
+                }
+            });
 
             // Set the axe's velocity based on direction
             const throwSpeed = 600;
@@ -446,11 +455,51 @@ class BossGame extends Phaser.Scene {
             this.activeAxe = axe;
 
             // Add collision with platforms
-            this.physics.add.collider(axe, this.platforms);
+            this.physics.add.collider(axe, this.platforms, (axe) => {
+                axe.setVelocity(0, 0);
+                axe.body.setAllowGravity(false);
+                // Stop the rotation animation when the axe hits a platform
+                this.tweens.killTweensOf(axe);
+            });
+
+            // Add collision with boss
+            this.physics.add.overlap(axe, this.ruhaan, (axe, boss) => {
+                if (axe.active) {
+                    const damage = 70;
+                    this.ruhhanHealth -= damage;
+
+                    // Visual feedback for damage
+                    const damageText = this.add.text(boss.x, boss.y - 50, `-${damage}!`, {
+                        fontSize: '32px',
+                        fill: '#ff0000'
+                    }).setOrigin(0.5);
+
+                    this.tweens.add({
+                        targets: damageText,
+                        y: damageText.y - 80,
+                        alpha: 0,
+                        duration: 800,
+                        onComplete: () => damageText.destroy()
+                    });
+                }
+            });
 
             // Add overlap with player for pickup
-            this.physics.add.overlap(this.aarav, axe, () => {
-                if (axe.body.velocity.x === 0 && axe.body.velocity.y === 0) {
+            this.physics.add.overlap(this.aarav, axe, (player, axe) => {
+                // Allow pickup if axe is stationary or moving very slowly
+                const velocityThreshold = 10;
+                if (Math.abs(axe.body.velocity.x) < velocityThreshold &&
+                    Math.abs(axe.body.velocity.y) < velocityThreshold) {
+                    // Visual feedback for pickup
+                    const pickupEffect = this.add.circle(axe.x, axe.y, 20, 0xffff00, 0.5);
+                    this.tweens.add({
+                        targets: pickupEffect,
+                        scale: 2,
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => pickupEffect.destroy()
+                    });
+
                     axe.destroy();
                     this.activeAxe = null;
                 }
@@ -476,17 +525,17 @@ class BossGame extends Phaser.Scene {
         if (this.ruhaan.body.touching.down) {
             if (distanceToPlayer > 500) {
                 // Move to closest platform above player
-                this.ruhaan.body.setVelocityX(direction < 0 ? -250 : 250);
-                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-800);
+                this.ruhaan.body.setVelocityX(direction < 0 ? -150 : 150);
+                if (Math.random() < 0.03) this.ruhaan.body.setVelocityY(-600);
             } else if (distanceToPlayer < 200) {
                 // Back away and possibly prepare for ground pound
-                this.ruhaan.body.setVelocityX(direction < 0 ? 300 : -300);
+                this.ruhaan.body.setVelocityX(direction < 0 ? 200 : -200);
                 if (this.aarav.y > this.ruhaan.y && Math.random() < 0.1) {
                     this.bossGroundPound();
                 }
             } else {
                 // Strategic positioning
-                this.ruhaan.body.setVelocityX(direction < 0 ? -200 : 200);
+                this.ruhaan.body.setVelocityX(direction < 0 ? -125 : 125);
             }
         }
         // Occasionally jump to reposition
