@@ -16,7 +16,7 @@ class StartScreen extends Phaser.Scene {
             fill: '#fff'
         }).setOrigin(0.5);
         // Saiyan class button
-        const saiyanButton = this.add.text(600, 500, 'Saiyan\n\nHP: 500\nSpeed: 100%\nQ: Energy Beam\nE: Healing', {
+        const saiyanButton = this.add.text(600, 500, 'Saiyan\n\nHP: 300\nSpeed: 100%\nQ: Energy Beam\nE: Healing', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -27,7 +27,7 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         // Rogue class button
-        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 300\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack', {
+        const rogueButton = this.add.text(1000, 500, 'Rogue\n\nHP: 500\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -114,7 +114,7 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         // Set initial health based on class
-        this.aaravHealth = this.playerClass === 'rogue' ? 300 : 200;
+        this.aaravHealth = this.playerClass === 'rogue' ? 500 : 300;
         this.maxHealth = this.aaravHealth; // Store max health for UI scaling
         this.ruhhanHealth = 1000; // Boss health remains the same
         this.lastShot = 0;
@@ -401,12 +401,31 @@ class BossGame extends Phaser.Scene {
     }
 
     shoot() {
-        const bulletSpeed = 400;
-        const bulletOffset = this.facingRight ? 25 : -25;
-        const bullet = this.add.rectangle(this.aarav.x + bulletOffset, this.aarav.y, 10, 5, 0xffff00);
-        this.bullets.add(bullet);
-        bullet.body.setVelocityX(this.facingRight ? bulletSpeed : -bulletSpeed);
-        bullet.body.setAllowGravity(false);
+        if (this.playerClass === 'saiyan') {
+            const bulletSpeed = 400;
+            const bulletOffset = this.facingRight ? 25 : -25;
+            const bullet = this.add.rectangle(this.aarav.x + bulletOffset, this.aarav.y, 10, 5, 0xffff00);
+            this.bullets.add(bullet);
+            bullet.body.setVelocityX(this.facingRight ? bulletSpeed : -bulletSpeed);
+            bullet.body.setAllowGravity(false);
+        } else if (this.playerClass === 'rogue' && this.time.now > this.lastShot + 1200) { // Slower attack speed for rogue
+            const axeOffset = this.facingRight ? 60 : -60;
+            const axe = this.physics.add.sprite(this.aarav.x + axeOffset, this.aarav.y, 'axe');
+            axe.setScale(0.2);
+            this.bullets.add(axe);
+            axe.body.setAllowGravity(false);
+            axe.isRogueBasicAttack = true;
+
+            // Melee range attack that stays in place
+            this.tweens.add({
+                targets: axe,
+                rotation: this.facingRight ? 2 * Math.PI : -2 * Math.PI,
+                duration: 400,
+                onComplete: () => axe.destroy()
+            });
+
+            this.lastShot = this.time.now;
+        }
     }
 
     updateBoss() {
@@ -612,8 +631,10 @@ class BossGame extends Phaser.Scene {
 
         if (bullet.isSpecialBeam) {
             damage = this.playerClass === 'rogue' ? 75 : 50;
+        } else if (bullet.isRogueBasicAttack) {
+            damage = 35; // Higher damage for rogue's basic attack
         } else {
-            damage = this.playerClass === 'rogue' ? 15 : 10;
+            damage = this.playerClass === 'rogue' ? 35 : 10;
         }
 
         if (this.hyperChargeActive) {
