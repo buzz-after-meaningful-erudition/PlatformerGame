@@ -27,7 +27,7 @@ class StartScreen extends Phaser.Scene {
                 backgroundColor: '#111'
             });
         // Rogue class button
-        const rogueButton = this.add.text(1000, 550, 'Rogue\n\nHP: 750\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack\nPassive: 3 HP/s Regen while moving', {
+        const rogueButton = this.add.text(1000, 550, 'Rogue\n\nHP: 650\nSpeed: 70%\nQ: Throwing Axe\nE: Stun Attack\nPassive: 3 HP/s Regen while moving', {
                 fontSize: '24px',
                 fill: '#fff',
                 align: 'center'
@@ -115,7 +115,7 @@ class BossGame extends Phaser.Scene {
         this.bullets = null;
         this.bossBalls = null;
         // Set initial health based on class
-        this.aaravHealth = this.playerClass === 'rogue' ? 750 : 300;
+        this.aaravHealth = this.playerClass === 'rogue' ? 650 : 300;
         this.maxHealth = this.aaravHealth; // Store max health for UI scaling
         this.ruhhanHealth = 1500; // Buffed boss health
         this.lastShot = 0;
@@ -752,7 +752,7 @@ class BossGame extends Phaser.Scene {
         if (bullet.isSpecialBeam) {
             damage = this.playerClass === 'rogue' ? 75 : 50;
         } else if (bullet.isRogueBasicAttack) {
-            damage = 70; // Much higher damage for rogue's basic attack
+            damage = 40; // Reduced initial hit damage for rogue's basic attack
         } else {
             damage = this.playerClass === 'rogue' ? 70 : 10;
         }
@@ -788,8 +788,13 @@ class BossGame extends Phaser.Scene {
 
         // Rogue charges faster
         if (this.playerClass === 'rogue') {
-            this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 2.5); // Even faster charge for rogue
-            this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.75); // Faster hypercharge for rogue
+            if (bullet.isRogueBasicAttack) {
+                this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 1.5); // Basic attack charge
+                this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.5); // Basic attack hypercharge
+            } else {
+                this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 2.5); // Special attack charge
+                this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.75); // Special attack hypercharge
+            }
         } else {
             this.specialAttackCharge = Math.min(10, this.specialAttackCharge + 0.8);
             this.hyperChargeAmount = Math.min(10, this.hyperChargeAmount + 0.25);
@@ -800,7 +805,7 @@ class BossGame extends Phaser.Scene {
     }
 
     hitPlayer(aarav, projectile) {
-        let damage = this.hyperChargeActive ? 10 : 15; // Base damage
+        let damage = this.hyperChargeActive ? 12 : 18; // Increased base damage
 
         // Create damage counter text
         const damageText = this.add.text(aarav.x, aarav.y - 50, '', {
@@ -816,7 +821,7 @@ class BossGame extends Phaser.Scene {
         }
 
         if (projectile.isBurrito) {
-            damage = 5; // Burrito damage
+            damage = 7; // Increased burrito damage
             this.isPoisoned = true;
             this.poisonDuration = 5000; // 5 seconds of poison
         }
