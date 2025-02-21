@@ -6,7 +6,7 @@ class StartScreen extends Phaser.Scene {
     }
     create() {
         // Title
-        this.add.text(800, 300, 'AARAV VS RUHAAN', {
+        this.add.text(800, 300, 'AARAV VS RUHAAN - VERSION TWO', {
             fontSize: '84px',
             fill: '#fff'
         }).setOrigin(0.5);
