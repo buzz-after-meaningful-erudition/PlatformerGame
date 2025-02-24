@@ -6,7 +6,7 @@ class StartScreen extends Phaser.Scene {
     }
     create() {
         // Title
-        this.add.text(800, 300, 'AARAV VS RUHAAN - VERSION TWO', {
+        this.add.text(800, 300, 'VARAA VS NAAHUR - VERSION TWO', {
             fontSize: '84px',
             fill: '#fff'
         }).setOrigin(0.5);
@@ -225,7 +225,7 @@ class BossGame extends Phaser.Scene {
         this.aaravHealthBar.setOrigin(0, 0);
 
         // Add "AARAV" text
-        const aaravText = this.add.text(60, 20, 'AARAV', {
+        const aaravText = this.add.text(60, 20, 'VARAA', {
             fontSize: '24px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -240,7 +240,7 @@ class BossGame extends Phaser.Scene {
         this.ruhhanHealthBar.setOrigin(0, 0);
 
         // Add "RUHAAN" text
-        const ruhhanText = this.add.text(860, 20, 'RUHAAN', {
+        const ruhhanText = this.add.text(860, 20, 'NAAHUR', {
             fontSize: '24px',
             fill: '#fff',
             fontStyle: 'bold'
